@@ -11,8 +11,8 @@
 		</ul>
 		<h3>Newly added endpoints:</h3>
 		<ul>
-			<li><strong>/weather</strong> -- returns the temperature of the location you gave (latitude &amp; longitude coordinates). example: /weather?query=37,-145</li>
-			<li><strong>/bmi</strong> - returns your BMI index given your weight in kilograms and height in meters. example: /bmi?height=1.9&weight=85</li>
+			<li><strong>/weather</strong> -- returns the temperature of the location you gave with the coordinates. The format should be: query={latitude},{longitude} |  example: <strong>/weather?query=37,-145</strong></li>
+			<li><strong>/bmi</strong> - returns your BMI index given your weight in kilograms and height in meters. The format should be: height={height}&weight={weight} | example: <strong>/bmi?height=1.9&weight=85</strong></li>
 		</ul>
 		<h3>File Structure in www (you can use /file/www/FILENAME):</h3>
 		${links}
