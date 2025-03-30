@@ -11,8 +11,18 @@
 		</ul>
 		<h3>Newly added endpoints:</h3>
 		<ul>
-			<li><strong>/weather</strong> -- returns the temperature of the location you gave with the coordinates. The format should be: query={latitude},{longitude} |  example: <strong>/weather?query=37,-145</strong></li>
-			<li><strong>/bmi</strong> - returns your BMI index given your weight in kilograms and height in meters. The format should be: height={height}&weight={weight} | example: <strong>/bmi?height=1.9&weight=85</strong></li>
+			<li>
+				<a href="https://ser321-mkrasnik.duckdns.org/weather?query=37,-145"><strong>/weather</strong></a> 
+				— returns the temperature of the location you provided using coordinates. 
+				Format: <code>query={latitude},{longitude}</code> | <strong>Example:</strong> 
+				<a href="https://ser321-mkrasnik.duckdns.org/weather?query=37,-145"><code>/weather?query=37,-145</code></a>
+			  </li>
+			  <li>
+				<a href="https://ser321-mkrasnik.duckdns.org/bmi?height=1.9&weight=85"><strong>/bmi</strong></a> 
+				— returns your BMI index given your weight in kilograms and height in meters. 
+				Format: <code>height={height}&amp;weight={weight}</code> | <strong>Example:</strong> 
+				<a href="https://ser321-mkrasnik.duckdns.org/bmi?height=1.9&weight=85"><code>/bmi?height=1.9&weight=85</code></a>
+			  </li>
 		</ul>
 		<h3>File Structure in www (you can use /file/www/FILENAME):</h3>
 		${links}
