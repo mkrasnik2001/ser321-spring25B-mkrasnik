@@ -293,18 +293,18 @@ class WebServer {
                 r = r + "}";
             }
             String fullName = "";
-            int fnIndex = r.indexOf("\"full_name\":");
-            if (fnIndex != -1) {
-                int start = r.indexOf("\"", fnIndex + 12);
+            int fnIdx = r.indexOf("\"full_name\":");
+            if (fnIdx != -1) {
+                int start = r.indexOf("\"", fnIdx + 12);
                 int end = r.indexOf("\"", start + 1);
                 if (start != -1 && end != -1) {
                     fullName = r.substring(start + 1, end);
                 }
             }
             String idStr = "";
-            int idIndex = r.indexOf("\"id\":");
-            if (idIndex != -1) {
-                int start = idIndex + 5;
+            int idIdx = r.indexOf("\"id\":");
+            if (idIdx != -1) {
+                int start = idIdx + 5;
                 while (start < r.length() && Character.isWhitespace(r.charAt(start))) {
                     start++;
                 }
@@ -315,11 +315,11 @@ class WebServer {
                 idStr = r.substring(start, end);
             }
             String ownerLogin = "";
-            int ownerIndex = r.indexOf("\"owner\":");
-            if (ownerIndex != -1) {
-                int loginIndex = r.indexOf("\"login\":", ownerIndex);
-                if (loginIndex != -1) {
-                    int start = r.indexOf("\"", loginIndex + 8);
+            int ownerIdx = r.indexOf("\"owner\":");
+            if (ownerIdx != -1) {
+                int loginIdx = r.indexOf("\"login\":", ownerIdx);
+                if (loginIdx != -1) {
+                    int start = r.indexOf("\"", loginIdx + 8);
                     int end = r.indexOf("\"", start + 1);
                     if (start != -1 && end != -1) {
                         ownerLogin = r.substring(start + 1, end);
@@ -334,14 +334,163 @@ class WebServer {
         builder.append("\n");
         builder.append(output.toString());
         response = builder.toString().getBytes();
-} else {
+        
+
+        // Individual Endpoint 1 (Weather)
+      } else if (request.contains("weather?")) {
+        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        try {
+          query_pairs = splitQuery(request.substring(request.indexOf("weather?") + 8));
+        } catch (UnsupportedEncodingException ex){
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Invalid Request Format! You might be missing characters in your request!");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        String params = query_pairs.get("query");
+        if (params == null || params.isEmpty()) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Missing query parameter 'query'.");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        String[] parts = params.split(",");
+        if (parts.length < 2) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Missing lat and/or lon in query parameter. You need to provide the lon and lat of your location!");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        double lat = 0, lon = 0;
+        try {
+          lat = Double.parseDouble(parts[0]);
+          lon = Double.parseDouble(parts[1]);
+        } catch (NumberFormatException e) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Invalid lat/lon values. They must be numbers!");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        // Get the weather data
+        String weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true";
+        String weatherJson = fetchURL(weatherUrl);
+        if (weatherJson == null || weatherJson.isEmpty()) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 500 Internal Server Error\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 500 Internal Server Error) Could not fetch weather data.");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        // Get temp
+        int  weatherIdx= weatherJson.indexOf("\"current_weather\":");
+        String tempStr = "";
+        if (weatherIdx != -1) {
+            int tempIdx = weatherJson.indexOf("\"temperature\":", weatherIdx);
+            if (tempIdx != -1) {
+                int colonIdx = weatherJson.indexOf(":", tempIdx) + 1;
+                int commaIdx = weatherJson.indexOf(",", colonIdx);
+                if (commaIdx == -1) {
+                  commaIdx = weatherJson.indexOf("}", colonIdx);
+                }
+                tempStr = weatherJson.substring(colonIdx, commaIdx).trim();
+            }
+        }
+        builder = new StringBuilder();
+        builder.append("HTTP/1.1 200 OK\n");
+        builder.append("Content-Type: text/plain; charset=utf-8\n");
+        builder.append("\n");
+        builder.append("Today's temperature: " + tempStr + "°C");
+        response = builder.toString().getBytes();
+        
+        
+        // Individual endpoint (BMI)
+      } else if (request.contains("bmi?")) {
+        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        try {
+            query_pairs = splitQuery(request.substring(request.indexOf("bmi?") + 4));
+        } catch (UnsupportedEncodingException ex) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Invalid Request Format!");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        String weightStr = query_pairs.get("weight");
+        String heightStr = query_pairs.get("height");
+        if (weightStr == null || weightStr.isEmpty() || heightStr == null || heightStr.isEmpty()) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Missing weight and/or height in query parameter. You need to provide your weight and height to calculate your bmi!");;
+            response = builder.toString().getBytes();
+            return response;
+        }
+        double weight = 0, height = 0;
+        try {
+            weight = Double.parseDouble(weightStr);
+            height = Double.parseDouble(heightStr);
+        } catch (NumberFormatException e) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Invalid number format for 'weight' or 'height'.");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        if (height <= 0) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Height must be more than zero.");
+            response = builder.toString().getBytes();
+            return response;
+        }
+
+        if (weight <= 0) {
+          builder = new StringBuilder();
+          builder.append("HTTP/1.1 400 Bad Request\n");
+          builder.append("Content-Type: text/plain; charset=utf-8\n");
+          builder.append("\n");
+          builder.append("(HTTP/1.1 400 Bad Request) Weight must be more than zero.");
+          response = builder.toString().getBytes();
+          return response;
+      }
+        double bmi = weight / (height * height);
+        builder = new StringBuilder();
+        builder.append("HTTP/1.1 200 OK\n");
+        builder.append("Content-Type: text/plain; charset=utf-8\n");
+        builder.append("\n");
+        builder.append("Your BMI is: " + bmi + "\n");
+        builder.append("Make sure you gave your height in meters and weight in kilograms!");
+        response = builder.toString().getBytes();
+
+      } else {
         builder = new StringBuilder();
         builder.append("HTTP/1.1 400 Bad Request\n");
         builder.append("Content-Type: text/html; charset=utf-8\n");
         builder.append("\n");
         builder.append("(HTTP/1.1 400 Bad Request) I am not sure what you want me to do...");
         response = builder.toString().getBytes();
-}
+      }
 
         // Output
         response = builder.toString().getBytes();
