@@ -193,29 +193,55 @@ class WebServer {
             builder.append("\n");
             builder.append("File not found: " + file);
           }
-        } else if (request.contains("multiply?")) {
-          // This multiplies two numbers, there is NO error handling, so when
-          // wrong data is given this just crashes
+        } else if (request.contains("multiply")) {
+          int questionMarkIdx = request.indexOf("?");
+          if ((questionMarkIdx == -1) || request.length() <= questionMarkIdx + 1){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
+          }else{
+          String queryString = request.substring(questionMarkIdx + 1);
+          Map<String, String> query_pairs = null;
 
-          Map<String, String> query_pairs = new LinkedHashMap<String, String>();
-          // extract path parameters
-          query_pairs = splitQuery(request.replace("multiply?", ""));
+          try{
+            query_pairs = splitQuery(queryString);
+          }catch (UnsupportedEncodingException ex){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Something went wrong: Invalid Request Format! You might be missing characters in your request!");
 
-          // extract required fields from parameters
-          Integer num1 = Integer.parseInt(query_pairs.get("num1"));
-          Integer num2 = Integer.parseInt(query_pairs.get("num2"));
 
-          // do math
-          Integer result = num1 * num2;
+          }
 
-          // Generate response
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Result is: " + result);
+          if (!query_pairs.containsKey("num1") || !query_pairs.containsKey("num2")){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
+          } else {
+            try {
+              // extract required fields from parameters
+              Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+              Integer num2 = Integer.parseInt(query_pairs.get("num2"));
 
-          // TODO: Include error handling here with a correct error code and
-          // a response that makes sense
+              // do math
+              Integer result = num1 * num2;
+
+              // Generate response
+              builder.append("HTTP/1.1 200 OK\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Result is: " + result);
+            } catch (NumberFormatException e){
+              builder.append("HTTP/1.1 400 Bad Request\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Something went wrong: Invalid numbers! 'num1' and 'num2' must be valid numbers!");
+            }
+          }
+        }
 
         } else if (request.contains("github?")) {
           // pulls the query from the request and runs it with GitHub's REST API
@@ -266,17 +292,23 @@ class WebServer {
    */
   public static Map<String, String> splitQuery(String query) throws UnsupportedEncodingException {
     Map<String, String> query_pairs = new LinkedHashMap<String, String>();
-    // "q=hello+world%2Fme&bob=5"
     String[] pairs = query.split("&");
-    // ["q=hello+world%2Fme", "bob=5"]
     for (String pair : pairs) {
-      int idx = pair.indexOf("=");
-      query_pairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"),
-          URLDecoder.decode(pair.substring(idx + 1), "UTF-8"));
+        int idx = pair.indexOf("=");
+        if (idx == -1) {
+            query_pairs.put(URLDecoder.decode(pair, "UTF-8"), "");
+        } else {
+            String key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
+            String value = "";
+            if (pair.length() > idx + 1) {
+                value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
+            }
+            query_pairs.put(key, value);
+        }
     }
-    // {{"q", "hello world/me"}, {"bob","5"}}
     return query_pairs;
-  }
+}
+
 
   /**
    * Builds an HTML file list from the www directory
