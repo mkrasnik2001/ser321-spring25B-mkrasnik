@@ -191,7 +191,7 @@ class WebServer {
             builder.append("HTTP/1.1 404 Not Found\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
             builder.append("\n");
-            builder.append("File not found: " + file);
+            builder.append("(HTTP/1.1 404 Not Found) Something went wrong: File not found: " + file);
           }
         } else if (request.contains("multiply")) {
           int questionMarkIdx = request.indexOf("?");
@@ -199,7 +199,7 @@ class WebServer {
             builder.append("HTTP/1.1 400 Bad Request\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
             builder.append("\n");
-            builder.append("Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
           }else{
           String queryString = request.substring(questionMarkIdx + 1);
           Map<String, String> query_pairs = null;
@@ -210,7 +210,7 @@ class WebServer {
             builder.append("HTTP/1.1 400 Bad Request\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
             builder.append("\n");
-            builder.append("Something went wrong: Invalid Request Format! You might be missing characters in your request!");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Invalid Request Format! You might be missing characters in your request!");
 
 
           }
@@ -219,7 +219,7 @@ class WebServer {
             builder.append("HTTP/1.1 400 Bad Request\n");
             builder.append("Content-Type: text/html; charset=utf-8\n");
             builder.append("\n");
-            builder.append("Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Missing parameters! You are missing either num1, num2 or both in your request!");
           } else {
             try {
               // extract required fields from parameters
@@ -238,40 +238,110 @@ class WebServer {
               builder.append("HTTP/1.1 400 Bad Request\n");
               builder.append("Content-Type: text/html; charset=utf-8\n");
               builder.append("\n");
-              builder.append("Something went wrong: Invalid numbers! 'num1' and 'num2' must be valid numbers!");
+              builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Invalid numbers! 'num1' and 'num2' must be valid numbers!");
             }
           }
         }
 
-        } else if (request.contains("github?")) {
-          // pulls the query from the request and runs it with GitHub's REST API
-          // check out https://docs.github.com/rest/reference/
-          //
-          // HINT: REST is organized by nesting topics. Figure out the biggest one first,
-          //     then drill down to what you care about
-          // "Owner's repo is named RepoName. Example: find RepoName's contributors" translates to
-          //     "/repos/OWNERNAME/REPONAME/contributors"
-
-          Map<String, String> query_pairs = new LinkedHashMap<String, String>();
-          query_pairs = splitQuery(request.replace("github?", ""));
-          String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
-          System.out.println(json);
-
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Check the todos mentioned in the Java source file");
-          // TODO: Parse the JSON returned by your fetch and create an appropriate
-          // response based on what the assignment document asks for
-
-        } else {
-          // if the request is not recognized at all
-
-          builder.append("HTTP/1.1 400 Bad Request\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("I am not sure what you want me to do...");
+      } else if (request.contains("github?")) {
+        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        try {
+          query_pairs = splitQuery(request.substring(request.indexOf("github?") + 7));
+        } catch (UnsupportedEncodingException ex) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Something went wrong: Invalid Request Format! You might be missing characters in your request!");
+            response = builder.toString().getBytes();
+            return response;
         }
+        String params = query_pairs.get("query");
+        if (params == null || params.isEmpty()) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 400 Bad Request) Missing query parameter 'query'.");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        String json = fetchURL("https://api.github.com/" + params);
+        if (json == null || json.isEmpty()) {
+            builder = new StringBuilder();
+            builder.append("HTTP/1.1 500 Internal Server Error\n");
+            builder.append("Content-Type: text/plain; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("(HTTP/1.1 500 Internal Server Error) Could not fetch data from GitHub!");
+            response = builder.toString().getBytes();
+            return response;
+        }
+        json = json.trim();
+        if (json.startsWith("[")) {
+            json = json.substring(1);
+        }
+        if (json.endsWith("]")) {
+            json = json.substring(0, json.length() - 1);
+        }
+        String[] repos = json.split("\\},\\s*\\{");
+        StringBuilder output = new StringBuilder();
+        for (String r : repos) {
+            if (!r.startsWith("{")) {
+                r = "{" + r;
+            }
+            if (!r.endsWith("}")) {
+                r = r + "}";
+            }
+            String fullName = "";
+            int fnIndex = r.indexOf("\"full_name\":");
+            if (fnIndex != -1) {
+                int start = r.indexOf("\"", fnIndex + 12);
+                int end = r.indexOf("\"", start + 1);
+                if (start != -1 && end != -1) {
+                    fullName = r.substring(start + 1, end);
+                }
+            }
+            String idStr = "";
+            int idIndex = r.indexOf("\"id\":");
+            if (idIndex != -1) {
+                int start = idIndex + 5;
+                while (start < r.length() && Character.isWhitespace(r.charAt(start))) {
+                    start++;
+                }
+                int end = start;
+                while (end < r.length() && Character.isDigit(r.charAt(end))) {
+                    end++;
+                }
+                idStr = r.substring(start, end);
+            }
+            String ownerLogin = "";
+            int ownerIndex = r.indexOf("\"owner\":");
+            if (ownerIndex != -1) {
+                int loginIndex = r.indexOf("\"login\":", ownerIndex);
+                if (loginIndex != -1) {
+                    int start = r.indexOf("\"", loginIndex + 8);
+                    int end = r.indexOf("\"", start + 1);
+                    if (start != -1 && end != -1) {
+                        ownerLogin = r.substring(start + 1, end);
+                    }
+                }
+            }
+            output.append("Repo: " + fullName + ", ID: " + idStr + ", Owner: " + ownerLogin + "\n");
+        }
+        builder = new StringBuilder();
+        builder.append("HTTP/1.1 200 OK\n");
+        builder.append("Content-Type: text/plain; charset=utf-8\n");
+        builder.append("\n");
+        builder.append(output.toString());
+        response = builder.toString().getBytes();
+} else {
+        builder = new StringBuilder();
+        builder.append("HTTP/1.1 400 Bad Request\n");
+        builder.append("Content-Type: text/html; charset=utf-8\n");
+        builder.append("\n");
+        builder.append("(HTTP/1.1 400 Bad Request) I am not sure what you want me to do...");
+        response = builder.toString().getBytes();
+}
 
         // Output
         response = builder.toString().getBytes();
