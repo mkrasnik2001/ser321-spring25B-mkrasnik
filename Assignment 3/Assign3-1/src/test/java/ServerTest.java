@@ -245,4 +245,56 @@ public class ServerTest {
         // calling the other test to make sure server continues to work and the "continue" does what it is supposed to do
         addRequest();
     }
+
+    @Test
+    public void testStringConcatService() {
+        JSONObject req;
+        JSONObject res;
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string1", "bob");
+        req.put("string2", "mike");
+        res = SockServer.stringConcat(req);
+        assertTrue(res.getBoolean("ok"));
+        assertEquals("bobmike", res.getString("result"));
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string1", "mike");
+        req.put("string2", "bob");
+        res = SockServer.stringConcat(req);
+        assertTrue(res.getBoolean("ok"));
+        assertEquals("mikebob", res.getString("result"));
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string1", 5);
+        req.put("string2", "dog");
+        res = SockServer.stringConcat(req);
+        assertFalse(res.getBoolean("ok"));
+        assertEquals("Field string1 has to be a String type", res.getString("message"));
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string1", "cat");
+        req.put("string2", 5); 
+        res = SockServer.stringConcat(req);
+        assertFalse(res.getBoolean("ok"));
+        assertEquals("Field string2 needs to be of type: String", res.getString("message"));
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string1", "bob");
+        res = SockServer.stringConcat(req);
+        assertFalse(res.getBoolean("ok"));
+        assertEquals("Field string2 does not exist in request", res.getString("message"));
+
+        req = new JSONObject();
+        req.put("type", "stringconcatenation");
+        req.put("string2", "bob");
+        res = SockServer.stringConcat(req);
+        assertFalse(res.getBoolean("ok"));
+        assertEquals("Field string1 does not exist in request", res.getString("message"));
+    }
 }
