@@ -16,7 +16,6 @@ class SockClient {
   static ObjectOutputStream os;
   static DataInputStream in;
   public static void main (String args[]) {
-
     if (args.length != 2) {
       System.out.println("Expected arguments: <host(String)> <port(int)>");
       System.exit(1);
@@ -25,6 +24,7 @@ class SockClient {
     try {
       host = args[0];
       port = Integer.parseInt(args[1]);
+      System.out.println("Host: " + host + " Port: " + port);
     } catch (NumberFormatException nfe) {
       System.out.println("[Port|sleepDelay] must be an integer");
       System.exit(2);
