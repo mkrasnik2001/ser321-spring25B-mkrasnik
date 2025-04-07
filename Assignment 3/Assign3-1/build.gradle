@@ -27,11 +27,18 @@ task Server(type: JavaExec) {
 task Client(type: JavaExec) {
   group 'TCP Server/Client'
   description 'Creates client socket sends a message and number to server'
-
   standardInput = System.in
   classpath = sourceSets.main.runtimeClasspath
-
   main = 'SockClient'
-  args "localhost"
-  args 8888
+
+  args project.hasProperty('host') ? project.host : 'localhost'
+  args project.hasProperty('port') ? project.port : 8888
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'SockServer'
+    }
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
