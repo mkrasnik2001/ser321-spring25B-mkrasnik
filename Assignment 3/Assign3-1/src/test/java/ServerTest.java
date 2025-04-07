@@ -6,6 +6,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.junit.BeforeClass;
+
 
 
 public class ServerTest {
@@ -15,6 +17,14 @@ public class ServerTest {
     ObjectOutputStream os;
 
     DataInputStream in;
+
+    // Start the server before running tests
+    @BeforeClass
+    public static void startServer() {
+        new Thread(() -> {
+            SockServer.main(new String[] {"8888"});
+        }).start();
+    }
 
 
     // Establishing a connection to the server, make sure you start the server on localhost and 8888
