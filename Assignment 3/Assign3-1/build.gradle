@@ -1,6 +1,8 @@
 apply plugin: 'java'
 
 description = "Client Server Socket Example"
+sourceCompatibility = '21'
+targetCompatibility = '21'
 
 repositories {
   mavenCentral()
