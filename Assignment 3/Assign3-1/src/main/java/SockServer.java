@@ -88,6 +88,8 @@ public class SockServer {
             res = add(req);
           } else if (req.getString("type").equals("addmany")) {
             res = addmany(req);
+          } else if (req.getString("type").equals("stringconcatenation")){
+            res = stringConcat(req);
           } else {
             res = wrongType(req);
           }
@@ -162,9 +164,49 @@ public class SockServer {
   }
 
   // implement me in assignment 3
-  static JSONObject inventory(JSONObject req) {
-    return new JSONObject();
-  }
+  static JSONObject stringConcat(JSONObject req) {
+    System.out.println("String concat request: " + req.toString());
+
+    JSONObject res = testField(req, "string1");
+    if (!res.getBoolean("ok")) {
+        res.put("type", "stringconcatenation");
+        res.put("ok", false);
+        return res;
+    }
+    
+    res = testField(req, "string2");
+    if (!res.getBoolean("ok")) {
+        res.put("type", "stringconcatenation");
+        res.put("ok", false);
+        return res;
+    }
+    
+    if (!req.get("string1").getClass().getName().equals("java.lang.String") ||
+        !req.get("string2").getClass().getName().equals("java.lang.String")) {
+        
+        res = new JSONObject();
+        res.put("type", "stringconcatenation");
+        res.put("ok", false);
+        
+        if (!req.get("string1").getClass().getName().equals("java.lang.String") &&
+            !req.get("string2").getClass().getName().equals("java.lang.String")) {
+              res.put("message", "Fields string1 and string2 must be of type String");
+        } else if (!req.get("string1").getClass().getName().equals("java.lang.String")) {
+          res.put("message", "Field string1 has to be a String type");
+        } else { 
+          res.put("message", "Field string2 needs to be of type: String");
+        }
+        return res;
+    }
+    
+    // Reach here means all params are valid
+    String concatenated = req.getString("string1") + req.getString("string2");
+    res = new JSONObject();
+    res.put("type", "stringconcatenation");
+    res.put("ok", true);
+    res.put("result", concatenated);
+    return res;
+}
 
   // implement me in assignment 3
   static JSONObject charCount(JSONObject req) {

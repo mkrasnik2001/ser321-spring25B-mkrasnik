@@ -74,6 +74,37 @@ class SockClient {
             json.put("type", "addmany");
             json.put("nums", array);
             break;
+            case 4:
+            System.out.println("Enter 2 values to concatenate (each can be a String or an int): ");
+            array = new JSONArray();
+            json.put("type", "stringconcatenation");
+            while (array.length() != 2) {
+                String input = scanner.nextLine();
+                if (input.isEmpty()) {
+                    System.out.println("Warning - no input provided for this string field.");
+                    array.put(JSONObject.NULL);
+                } else {
+                    try {
+                        int intValue = Integer.parseInt(input);
+                        array.put(intValue);
+                        if (array.length() == 1) {
+                            json.put("string1", intValue);
+                        } else {
+                            json.put("string2", intValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        array.put(input);
+                        if (array.length() == 1) {
+                            json.put("string1", input);
+                        } else {
+                            json.put("string2", input);
+                        }
+                    }
+                    System.out.println("Got value: '" + input + "'");
+                }
+            }
+            break;
+
             // TODO: add the other cases
         }
         if(!requesting) {
@@ -94,7 +125,10 @@ class SockClient {
         if (res.getBoolean("ok")){
           if (res.getString("type").equals("echo")) {
             System.out.println(res.getString("echo"));
-          } else {
+
+          } else if (res.getString("type").equals("stringconcatenation")){
+            System.out.println(res.getString("result"));
+          }else {
             System.out.println(res.getInt("result"));
           }
         } else {
