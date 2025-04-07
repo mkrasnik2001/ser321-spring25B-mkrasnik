@@ -3,13 +3,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.io.*;
+
+
 
 /**
  * A class to demonstrate a simple client-server connection using sockets.
  *
  */
 public class SockServer {
+  static List<JSONObject> quizQs = new ArrayList<>();
+  static long quizGameStartTime;
+  static String currQuizAns= null;
   static Socket sock;
   static DataOutputStream os;
   static ObjectInputStream in;
@@ -90,7 +98,9 @@ public class SockServer {
             res = addmany(req);
           } else if (req.getString("type").equals("stringconcatenation")){
             res = stringConcat(req);
-          } else {
+          } else if (req.getString("type").equals("quizgame")){
+            res = quizGame(req);
+          }else {
             res = wrongType(req);
           }
           writeOut(res);
@@ -209,9 +219,145 @@ public class SockServer {
 }
 
   // implement me in assignment 3
-  static JSONObject charCount(JSONObject req) {
-    return new JSONObject();
-  }
+  static JSONObject quizGame(JSONObject req) {
+    System.out.println("QuizGame request: " + req.toString());
+    JSONObject res = new JSONObject();
+    if (req.has("addQuestion")) {
+        boolean addQuestion = req.getBoolean("addQuestion");
+        if (addQuestion) {
+            res = testField(req, "question");
+            if (!res.getBoolean("ok")) {
+                res.put("type", "quizgame");
+                res.put("ok", false);
+                return res;
+            }
+            res = testField(req, "answer");
+            if (!res.getBoolean("ok")) {
+                res.put("type", "quizgame");
+                res.put("ok", false);
+                return res;
+            }
+
+            if (req.getString("answer").equals("") || req.getString("question").equals("")){
+              res.put("type", "quizgame");
+              res.put("ok", false);
+              res.put("message", "Either the answer or question provided is empty. Try again!");
+              return res;
+            }
+            if (!req.get("question").getClass().getName().equals("java.lang.String") ||
+                !req.get("answer").getClass().getName().equals("java.lang.String")) {
+                res = new JSONObject();
+                res.put("type", "quizgame");
+                res.put("ok", false);
+                if (!req.get("question").getClass().getName().equals("java.lang.String") &&
+                    !req.get("answer").getClass().getName().equals("java.lang.String")) {
+                    res.put("message", "Fields question and answer must be of a String type");
+                } else if (!req.get("question").getClass().getName().equals("java.lang.String")) {
+                    res.put("message", "Field question has to be of a String type");
+                } else {
+                    res.put("message", "Field answer needs to be of a String type");
+                }
+                return res;
+            }
+            JSONObject newQa = new JSONObject();
+            newQa.put("question", req.getString("question"));
+            newQa.put("answer", req.getString("answer"));
+            quizQs.add(newQa);
+            res = new JSONObject();
+            res.put("type", "quizgame");
+            res.put("ok", true);
+            return res;
+        } else {
+            if (quizQs.isEmpty()) {
+                res = new JSONObject();
+                res.put("type", "quizgame");
+                res.put("ok", false);
+                res.put("message", "There are no questions at the moment. Add a question to play!");
+                return res;
+            }
+            quizGameStartTime = System.currentTimeMillis();
+            System.out.println("Quiz started current time: " + quizGameStartTime);
+            int index = new Random().nextInt(quizQs.size());
+            JSONObject newQa = quizQs.get(index);
+            currQuizAns = newQa.getString("answer");
+            res = new JSONObject();
+            res.put("type", "quizgame");
+            res.put("ok", true);
+            res.put("question", newQa.getString("question"));
+            return res;
+        }
+    }
+    
+    if (req.has("answer")) {
+      if (!req.get("answer").getClass().getName().equals("java.lang.String")) {
+          res = new JSONObject();
+          res.put("type", "quizgame");
+          res.put("ok", false);
+          res.put("message", "Field answer needs to be of a String type");
+          return res;
+      }
+      long currentTime = System.currentTimeMillis();
+      if (currentTime - quizGameStartTime >= 120000) {
+          res = new JSONObject();
+          res.put("type", "quizgame");
+          res.put("ok", true);
+          res.put("message", "2 min quiz times up!. Game over.");
+          return res;
+      }
+      String providedAns = req.getString("answer");
+      boolean result = (currQuizAns != null && providedAns.equals(currQuizAns));
+      res = new JSONObject();
+      res.put("type", "quizgame");
+      res.put("result", result);
+      res.put("ok", true);
+      if (result) {
+          // remove only correct questions
+          for (int i = 0; i < quizQs.size(); i++) {
+              JSONObject qa = quizQs.get(i);
+              if (qa.getString("answer").equals(currQuizAns)) {
+                  quizQs.remove(i);
+                  break;
+              }
+          }
+      }
+      if (System.currentTimeMillis() - quizGameStartTime >= 10000) {
+        res = new JSONObject();
+        res.put("type", "quizgame");
+        res.put("ok", false);
+        res.put("message", "Time limit ran out! Game over.");
+        return res;
+    }
+    if (quizQs.isEmpty()) {
+        res = new JSONObject();
+        res.put("type", "quizgame");
+        res.put("ok", false);
+        res.put("message", "No more questions left! Game over.");
+        return res;
+    } else {
+        int index = new Random().nextInt(quizQs.size());
+        JSONObject newQa = quizQs.get(index);
+        currQuizAns = newQa.getString("answer");
+        res.put("question", newQa.getString("question"));
+        return res;
+    }
+    
+}
+    res = new JSONObject();
+    res.put("type", "quizgame");
+    res.put("ok", false);
+    res.put("message", "Something went wrong with the quizgame request.");
+    return res;
+}
+
+
+
+
+
+
+
+
+
+
 
   // handles the simple addmany request
   static JSONObject addmany(JSONObject req){

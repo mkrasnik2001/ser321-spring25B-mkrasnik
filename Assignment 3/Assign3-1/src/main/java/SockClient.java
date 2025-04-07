@@ -74,7 +74,7 @@ class SockClient {
             json.put("type", "addmany");
             json.put("nums", array);
             break;
-            case 4:
+          case 4:
             System.out.println("Enter 2 values to concatenate (each can be a String or an int): ");
             array = new JSONArray();
             json.put("type", "stringconcatenation");
@@ -102,10 +102,50 @@ class SockClient {
                     }
                     System.out.println("Got value: '" + input + "'");
                 }
+              }
+              break;
+          case 5:
+            System.out.println("Quiz Game:");
+            System.out.println("Type 1 to add a new question. Type 0 (or any other key) to play the quiz game.");
+            System.out.print("Please Note: Quiz questions will be removed from the available questions IF AND ONLY IF they are answered correctly! The game will end either when that happens or your 2 minute quiz timer expires when you start your quiz!");
+            String usrChoice = scanner.nextLine();
+            json = new JSONObject();
+            json.put("type", "quizgame");
+            if (usrChoice.equals("1")) {
+                json.put("addQuestion", true);
+                System.out.println("Enter the new quiz question:");
+                String question = scanner.nextLine();
+                json.put("question", question);
+                System.out.println("Enter the answer for the question:");
+                String answer = scanner.nextLine();
+                json.put("answer", answer);
+            } else {
+                json.put("addQuestion", false);
             }
-            break;
+            
+            os.writeObject(json.toString());
+            os.flush();
+            
+            String response = (String) in.readUTF();
+            JSONObject res = new JSONObject(response);
+            System.out.println("Got response: " + res);
+            
+            if (!json.getBoolean("addQuestion") && res.getBoolean("ok") && res.has("question")) {
+              do {
+                  System.out.println("Answer the following question: " + res.getString("question"));
+                  String userAnswer = scanner.nextLine();
+                  JSONObject answerJson = new JSONObject();
+                  answerJson.put("type", "quizgame");
+                  answerJson.put("answer", userAnswer);
+                  os.writeObject(answerJson.toString());
+                  os.flush();
+                  String answerResponse = (String) in.readUTF();
+                  res = new JSONObject(answerResponse);
+                  System.out.println("Got response: " + res);
+              } while (res.has("question") && (!res.has("message") || !res.getString("message").contains("Game over")));
+          }
+          continue;
 
-            // TODO: add the other cases
         }
         if(!requesting) {
           continue;
@@ -122,17 +162,28 @@ class SockClient {
         String i = (String) in.readUTF();
         JSONObject res = new JSONObject(i);
         System.out.println("Got response: " + res);
-        if (res.getBoolean("ok")){
-          if (res.getString("type").equals("echo")) {
+        if (res.getBoolean("ok")) {
+          String type = res.getString("type");
+          if (type.equals("echo")) {
             System.out.println(res.getString("echo"));
-
-          } else if (res.getString("type").equals("stringconcatenation")){
+          } else if (type.equals("stringconcatenation")) {
             System.out.println(res.getString("result"));
-          }else {
+          } else if (type.equals("quizgame")) {
+            if (res.has("result")) {
+              System.out.println("Result: " + res.getBoolean("result"));
+            }
+            if (res.has("message")) {
+              System.out.println("Message: " + res.getString("message"));
+            }
+          } else {
             System.out.println(res.getInt("result"));
           }
         } else {
-          System.out.println(res.getString("message"));
+          if (res.has("message")) {
+            System.out.println(res.getString("message"));
+          } else {
+            System.out.println("Something went wrong while parsing response!");
+          }
         }
       }
       // want to keep requesting services so don't close connection

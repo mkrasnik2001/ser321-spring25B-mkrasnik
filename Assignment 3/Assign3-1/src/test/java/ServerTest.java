@@ -297,4 +297,92 @@ public class ServerTest {
         assertFalse(res.getBoolean("ok"));
         assertEquals("Field string1 does not exist in request", res.getString("message"));
     }
+
+    @Test
+    public void testQuizGame(){
+        // Reset static fields
+        SockServer.quizQs.clear();
+        SockServer.quizGameStartTime = 0;
+        SockServer.currQuizAns = "";
+
+        JSONObject req, res;
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", true);
+        req.put("answer", "bmw");
+        res = SockServer.quizGame(req);
+        assertFalse(res.getBoolean("ok"));
+        assertTrue(res.getString("message").toLowerCase().contains("question"));
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", true);
+        req.put("question", "fav color?");
+        res = SockServer.quizGame(req);
+        assertFalse(res.getBoolean("ok"));
+        assertTrue(res.getString("message").toLowerCase().contains("answer"));
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", true);
+        req.put("question", "Tallest mountain?");
+        req.put("answer", "Everest");
+        res = SockServer.quizGame(req);
+        assertTrue(res.getBoolean("ok"));
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", false);
+        res = SockServer.quizGame(req);
+        assertTrue(res.getBoolean("ok"));
+        assertTrue(res.has("question"));
+        String correctAnswer = SockServer.currQuizAns;  
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("answer", correctAnswer);
+        res = SockServer.quizGame(req);
+        
+        if (SockServer.quizQs.isEmpty()) {
+            assertFalse(res.getBoolean("ok"));
+            assertTrue(res.getString("message").toLowerCase().contains("game over"));
+        } else {
+            assertTrue(res.getBoolean("result"));
+        }
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", true);
+        req.put("question", "Tallest Mountain?");
+        req.put("answer", "Everest");
+        res = SockServer.quizGame(req);
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", true);
+        req.put("question", "Capital of Italy?");
+        req.put("answer", "Rome");
+        res = SockServer.quizGame(req);
+
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("addQuestion", false);
+        res = SockServer.quizGame(req);
+        assertTrue(res.getBoolean("ok"));
+        assertTrue(res.has("question"));
+        
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("answer", "Table Mountain"); // this is a wrong answer test
+        res = SockServer.quizGame(req);
+        assertFalse(res.getBoolean("result"));
+        assertTrue(res.has("question"));
+
+        SockServer.quizGameStartTime = System.currentTimeMillis() - 100000; // 100 sec in past
+        req = new JSONObject();
+        req.put("type", "quizgame");
+        req.put("answer", "testestest");
+        res = SockServer.quizGame(req);
+        assertTrue(res.getString("message").toLowerCase().contains("time limit"));
+    }
 }
