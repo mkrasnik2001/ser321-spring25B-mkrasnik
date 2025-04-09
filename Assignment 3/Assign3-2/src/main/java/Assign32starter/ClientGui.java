@@ -65,7 +65,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		
 		frame = new JDialog();
 		frame.setLayout(new GridBagLayout());
-		frame.setMinimumSize(new Dimension(500, 500));
+		frame.setMinimumSize(new Dimension(1000, 600));
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
 		// setup the top picture frame
@@ -111,19 +111,18 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		String string = this.bufferedReader.readLine();
 		System.out.println("Got a connection to server");
 		JSONObject json = new JSONObject(string);
-		outputPanel.appendOutput(json.getString("value")); // putting the message in the outputpanel
+		outputPanel.appendOutput(json.getJSONObject("payload").optString("value"));
 
 		// reading out the image (abstracted here as just a string)
-		System.out.println("Pretend I got an image: " + json.getString("image"));
 		/// would put image in picture panel
-		close(); //closing the connection to server
+		//close(); //closing the connection to server
 
 		// Now Client interaction only happens when the submit button is used, see "submitClicked()" method
 	}
 
 	/**
 	 * Shows the menu options for the player once they send their name to the server
-	 * @param makeModal
+	 * 
 	 */
 	public void showMenu(){
 		// Options to be shown in the dialog
@@ -133,7 +132,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		int option = JOptionPane.showOptionDialog(
 			frame, 
 			"Please select from the menu:", 
-			"Main Menu", 
+			"Welcome to MoviePixel", 
 			JOptionPane.DEFAULT_OPTION, 
 			JOptionPane.QUESTION_MESSAGE, 
 			null, 
@@ -141,7 +140,6 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			options[2]  
 		);
 
-		// Use a switch statement to handle each selection
 		switch (option) {
 		case 0: 
 			clientState = "initName";
@@ -153,8 +151,9 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			showMenu();
 			break;
 		case 2: 
-			clientState = "startGame";
+			clientState = "promptGameLength";
 			outputPanel.appendOutput("Starting game...");
+
 			sendStartGame();
 			break;
 		default: 
@@ -164,26 +163,77 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		}
 	}
 
+	/**
+	 * Shows the menu options for an existing player once the game they played
+	 * just ended.
+	 * 
+	 */
+	public void showPlayAgainMenu(){
+		String[] options = { "Logout", "Leaderboard", "Play Again" };
+
+		// Display option dialog on the Event Dispatch Thread (EDT)
+		int option = JOptionPane.showOptionDialog(
+			frame, 
+			"Do you want to play again or logout?", 
+			"Game Over", 
+			JOptionPane.DEFAULT_OPTION, 
+			JOptionPane.QUESTION_MESSAGE, 
+			null, 
+			options, 
+			options[2]  
+		);
+
+		switch (option) {
+		case 0: 
+			clientState = "initName";
+			outputPanel.appendOutput("You have quit. Please enter your name to start a new session.");
+			break;
+		case 1: 
+			clientState = "leaderboard";
+			outputPanel.appendOutput("Showing leaderboard... (TODO: implement leaderboard view)");
+			showPlayAgainMenu();
+			break;
+		case 2: 
+			clientState = "promptGameLength";
+			outputPanel.appendOutput("Starting game...");
+
+			sendStartGame();
+			break;
+		default: 
+			outputPanel.appendOutput("Nothing selected! Please try again.");
+			showPlayAgainMenu();
+			break;
+		}
+	}
+
+	/**
+	 * Send start request to the server of a new game
+	 */
 	private void sendStartGame() {
 		try {
 			JSONObject request = new JSONObject();
 			JSONObject header = new JSONObject();
 			JSONObject payload = new JSONObject();
 	
-			header.put("type", "startGame");
-			header.put("player", clientName);
+			header.put("type", "promptGameLength");
+			header.put("playerName", clientName);
 			header.put("ok", true);
 			payload.put("value", "Requesting to start the game");
 			request.put("header", header);
 			request.put("payload", payload);
 	
 			os.writeObject(request.toString());
-			System.out.println("Start game request sent: " + request.toString());
+			System.out.println("[DEBUG} -> Start game request sent: " + request.toString());
 	
+			// Read the server response
 			String response = bufferedReader.readLine();
 			JSONObject respJson = new JSONObject(response);
-			String message = respJson.getJSONObject("payload").optString("value");
+			System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
+			JSONObject respPayload = respJson.getJSONObject("payload");
+			String message = respPayload.optString("value");
 			outputPanel.appendOutput(message);
+			clientState = "checkGameLength";
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -249,60 +299,90 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	 */
 	@Override
 	public void submitClicked() {
+		System.out.println("[DEBUG] -> Current Client State: " + clientState);
 		try {
-			open();
 			String input = outputPanel.getInputText().trim();
 			JSONObject request = new JSONObject();
 			JSONObject reqHeader = new JSONObject();
 			JSONObject reqPayload = new JSONObject();
-			
-			// Make name request
+	
 			if (clientState.equals("initName")) {
 				reqHeader.put("type", "name");
 				reqHeader.put("playerName", input);
 				reqHeader.put("ok", true);
 				reqPayload.put("value", input);
+
+			} else if (clientState.equals("checkGameLength")) {
+				reqHeader.put("type", "checkGameLength");
+				reqHeader.put("playerName", clientName); 
+				reqHeader.put("ok", true);
+				reqPayload.put("value", input);  
+
+			} else if (clientState.equals("inGame")) {
+				reqHeader.put("type", "game");
+				reqHeader.put("playerName", clientName);
+				reqHeader.put("ok", true);
+				reqPayload.put("value", input);
+
 			} else {
-				//TODO
+				// TODO FALL BACK
 				reqHeader.put("type", "unknown");
 				reqHeader.put("ok", false);
 				reqPayload.put("value", input);
 			}
 			System.out.println("Client state: " + clientState);
-
-			// Build request
 			request.put("header", reqHeader);
 			request.put("payload", reqPayload);
-			
+	
 			os.writeObject(request.toString());
-			System.out.println("Request sent -> " + request);
-			
+			System.out.println("Request sent -> " + request.toString());
+	
 			// Read the server response
 			String response = bufferedReader.readLine();
 			JSONObject respJson = new JSONObject(response);
 			System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
-			
+	
 			JSONObject respHeader = respJson.getJSONObject("header");
 			JSONObject respPayload = respJson.getJSONObject("payload");
 			String message = respPayload.optString("value");
 			outputPanel.appendOutput(message);
 			
-			// Handle error from server
-			if (respHeader.optBoolean("ok", true)) {
-				clientState = "menuOpts";
-				clientName = input;
-				System.out.println("[DEBUG] -> Server status ok: true, moving to next state: " + clientState);
-				showMenu();
-			} else {
-				clientState = "initName";
-				System.out.println("[DEBUG] -> Server status ok: false, client state: " + clientState);
+			if (respPayload.has("points")) {
+				int updatedPoints = respPayload.optInt("points", 0);
+				outputPanel.setPoints(updatedPoints);
 			}
-			
-			close();
+
+			// Handle client state based on server response
+			if (respHeader.optBoolean("ok", true)) {
+				String type = respHeader.optString("type", "");
+				if (type.equals("gameStart")) {
+					clientState = "inGame";
+
+				} else if (type.equals("gameUpdate") || type.equals("info")) {
+					clientState = "inGame";
+
+				} else if (type.equals("menuOpts") || (type.equals("gameOver"))) {
+					clientState = "menuOpts";
+					clientName = reqHeader.optString("playerName", clientName);
+					outputPanel.setPoints(0);
+					if (type.equals("menuOpts")){
+						showMenu();
+					} else{
+						showPlayAgainMenu();
+					}
+				}
+			} else {
+				if (clientState.equals("checkGameLength"))
+					clientState = "checkGameLength";
+				else
+					clientState = "initName";
+			}
+		outputPanel.setInputText("");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
 
 
 
