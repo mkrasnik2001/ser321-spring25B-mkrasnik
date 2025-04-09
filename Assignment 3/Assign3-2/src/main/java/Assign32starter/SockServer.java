@@ -1,8 +1,5 @@
 package Assign32starter;
 import java.net.*;
-import java.util.Base64;
-import java.util.Set;
-import java.util.Stack;
 import java.util.*;
 
 import javax.imageio.ImageIO;
@@ -19,6 +16,7 @@ import org.json.*;
  */
 public class SockServer {
 	static Stack<String> imageSource = new Stack<String>();
+    static Set<String> playerNames = new HashSet<>();
 
 	public static void main (String args[]) {
 		Socket sock;
@@ -52,26 +50,52 @@ public class SockServer {
 				JSONObject payloadReceived = jsonRecieved.getJSONObject("payload");
 
 				System.out.println("[DEBUG] -> Client Request Received: " + jsonRecieved);
-
-				if (headerRecieved.getString("type").equals("start")){
+				String requestType = headerRecieved.getString("type");
+				//Handshake
+				if (requestType.equals("start")){
 					
 					System.out.println("- Got a start");
 				
 					response.put("type","hello" );
-					response.put("value","Hello, please tell me your name." );
+					response.put("value","[MoviePixel Inc]: Hello, please tell me your name." );
 					sendImg("img/hi.png", response); // calling a method that will manipulate the image and will make it send ready
 					
-				} else if (headerRecieved.getString("type").equals("name")){
-					String newPlayerName = payloadReceived.optString("value", "Player");
-					System.out.println("Got new player: " + newPlayerName);
+				
+				// Handle Player Name
+				} else if (requestType.equals("name")) {
+					System.out.println("[DEBUG] -> Current player set: " + playerNames);
+					String newPlayerName = payloadReceived.optString("value", "Player").trim();
+					
+					if (newPlayerName.isEmpty() || newPlayerName.matches("\\d+")) {
+						System.out.println("Invalid player name received: " + newPlayerName);
+						
+						respHeader.put("type", "error");
+						respHeader.put("ok", false);
+						respPayload.put("value", "[MoviePixel Inc]: Invalid name. Name cannot be a number or empty!");
+					
+					} else if (playerNames.contains(newPlayerName)) {
+                        // Duplicate name found
+                        respHeader.put("type", "error");
+                        respHeader.put("ok", false);
+                        respPayload.put("value", "[MoviePixel Inc]: Name already in use. Please choose a different name."); 
 
-					respHeader.put("type", "menuOpts");
-					respHeader.put("ok", true);
-					respHeader.put("playerName", newPlayerName);
-					respPayload.put("value", "Hello " + newPlayerName + ", welcome to the Movie Game! Please select above what you want to do...");
-
-
+					}else {
+						System.out.println("Got new player: " + newPlayerName);
+						
+						respHeader.put("type", "menuOpts");
+						respHeader.put("ok", true);
+						respHeader.put("playerName", newPlayerName);
+						respPayload.put("value", "[MoviePixel Inc]: Hello " + newPlayerName + ", welcome to the Movie Game! Please select above what you want to do...");
+						playerNames.add(newPlayerName);
+					}
 				}
+
+
+
+
+
+
+
 				else {
 					System.out.println("not sure what you meant");
 					// response.put("type","error" );

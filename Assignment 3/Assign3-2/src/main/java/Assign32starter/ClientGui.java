@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.WindowConstants;
 
 /**
@@ -121,6 +122,79 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	}
 
 	/**
+	 * Shows the menu options for the player once they send their name to the server
+	 * @param makeModal
+	 */
+	public void showMenu(){
+		// Options to be shown in the dialog
+		String[] options = { "Quit", "Leaderboard", "Start" };
+
+		// Display option dialog on the Event Dispatch Thread (EDT)
+		int option = JOptionPane.showOptionDialog(
+			frame, 
+			"Please select from the menu:", 
+			"Main Menu", 
+			JOptionPane.DEFAULT_OPTION, 
+			JOptionPane.QUESTION_MESSAGE, 
+			null, 
+			options, 
+			options[2]  
+		);
+
+		// Use a switch statement to handle each selection
+		switch (option) {
+		case 0: 
+			clientState = "initName";
+			outputPanel.appendOutput("You have quit. Please enter your name to start a new session.");
+			break;
+		case 1: 
+			clientState = "leaderboard";
+			outputPanel.appendOutput("Showing leaderboard... (TODO: implement leaderboard view)");
+			showMenu();
+			break;
+		case 2: 
+			clientState = "startGame";
+			outputPanel.appendOutput("Starting game...");
+			sendStartGame();
+			break;
+		default: 
+			outputPanel.appendOutput("Nothing selected! Please try again.");
+			showMenu();
+			break;
+		}
+	}
+
+	private void sendStartGame() {
+		try {
+			JSONObject request = new JSONObject();
+			JSONObject header = new JSONObject();
+			JSONObject payload = new JSONObject();
+	
+			header.put("type", "startGame");
+			header.put("player", clientName);
+			header.put("ok", true);
+			payload.put("value", "Requesting to start the game");
+			request.put("header", header);
+			request.put("payload", payload);
+	
+			os.writeObject(request.toString());
+			System.out.println("Start game request sent: " + request.toString());
+	
+			String response = bufferedReader.readLine();
+			JSONObject respJson = new JSONObject(response);
+			String message = respJson.getJSONObject("payload").optString("value");
+			outputPanel.appendOutput(message);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+
+
+
+
+
+	/**
 	 * Shows the current state in the GUI
 	 * @param makeModal - true to make a modal window, false disables modal behavior
 	 */
@@ -156,7 +230,6 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			// insert the image
 			if (picPanel.insertImage(filename, row, col)) {
 				// put status in output
-				outputPanel.appendOutput("Inserting " + filename + " in position (" + row + ", " + col + ")"); // you can of course remove this
 				return true;
 			}
 			error = "File(\"" + filename + "\") not found.";
@@ -183,13 +256,12 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			JSONObject reqHeader = new JSONObject();
 			JSONObject reqPayload = new JSONObject();
 			
+			// Make name request
 			if (clientState.equals("initName")) {
 				reqHeader.put("type", "name");
 				reqHeader.put("playerName", input);
 				reqHeader.put("ok", true);
 				reqPayload.put("value", input);
-				clientState = "menuOpts";
-				clientName = input;
 			} else {
 				//TODO
 				reqHeader.put("type", "unknown");
@@ -197,24 +269,47 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 				reqPayload.put("value", input);
 			}
 			System.out.println("Client state: " + clientState);
+
+			// Build request
 			request.put("header", reqHeader);
 			request.put("payload", reqPayload);
 			
 			os.writeObject(request.toString());
-			System.out.println(request);
+			System.out.println("Request sent -> " + request);
+			
+			// Read the server response
 			String response = bufferedReader.readLine();
 			JSONObject respJson = new JSONObject(response);
-
-			System.out.println("[DEBUG] -> Server Response Received: " + respJson);
-
-			String message = respJson.getJSONObject("payload").optString("value");
+			System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
+			
+			JSONObject respHeader = respJson.getJSONObject("header");
+			JSONObject respPayload = respJson.getJSONObject("payload");
+			String message = respPayload.optString("value");
 			outputPanel.appendOutput(message);
+			
+			// Handle error from server
+			if (respHeader.optBoolean("ok", true)) {
+				clientState = "menuOpts";
+				clientName = input;
+				System.out.println("[DEBUG] -> Server status ok: true, moving to next state: " + clientState);
+				showMenu();
+			} else {
+				clientState = "initName";
+				System.out.println("[DEBUG] -> Server status ok: false, client state: " + clientState);
+			}
 			
 			close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+
+
+
+
+
+
+
 
 	/**
 	 * Key listener for the input text box
