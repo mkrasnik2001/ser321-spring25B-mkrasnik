@@ -48,6 +48,11 @@ public class OutputPanel extends JPanel {
   private JButton submit;
   private JTextArea area;
   private ArrayList<EventHandlers> handlers = new ArrayList<>();
+  private Runnable quitCallback;
+
+  public void setQuitCallback(Runnable quitCallback) {
+    this.quitCallback = quitCallback;
+  }
 
   /**
    * Constructor
@@ -134,6 +139,17 @@ public class OutputPanel extends JPanel {
     DefaultCaret caret = (DefaultCaret) area.getCaret();
     caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 
+    JButton quitButton = new JButton("Quit Game");
+        quitButton.addActionListener(e -> {
+            if (quitCallback != null) {
+                quitCallback.run();
+            }
+        });
+        GridBagConstraints cq = new GridBagConstraints();
+        cq.gridx = 2; 
+        cq.gridy = 1;
+        cq.fill = GridBagConstraints.HORIZONTAL;
+        add(quitButton, cq);
   }
 
   /**

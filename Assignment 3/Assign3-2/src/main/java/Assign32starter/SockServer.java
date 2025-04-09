@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import org.json.*;
 import Assign32starter.MovieMap;
+import Assign32starter.LeaderboardManager;
 /**
  * A class to demonstrate a simple client-server connection using sockets.
  * Ser321 Foundations of Distributed Software Systems
@@ -46,9 +47,19 @@ public class SockServer {
 
                         System.out.println("[DEBUG] -> Client Request Received: " + jsonRecieved);
                         String requestType = headerRecieved.getString("type");
+                        
+                        //Handle Quit
+                        if (requestType.equals("quit")) {
+                            System.out.println("- Got quit request");
+                            respHeader.put("type", "quit");
+                            respHeader.put("ok", true);
+                            respPayload.put("value", "[MoviePixel Inc]: Quitting game. Goodbye!");
+                            respPayload = sendImg("img/quit.png", respPayload);
+                            
+                        
 
                         //Handle Handshake
-                        if (requestType.equals("start")){
+                        } else if (requestType.equals("start")){
                             System.out.println("- Got a start");
                             // Build a hello response
                             respHeader.put("type", "hello");
@@ -77,7 +88,7 @@ public class SockServer {
 								respHeader.put("type", "menuOpts");
 								respHeader.put("ok", true);
 								respHeader.put("playerName", newPlayerName);
-								respPayload.put("value", "[MoviePixel Inc]: Welcome back " + newPlayerName + ". Your highest score is: " + highestScore + " Please select what you want to do...");
+								respPayload.put("value", "[MoviePixel Inc]: Welcome back " + newPlayerName + ". Your absolute highest score is: " + highestScore + " Please select what you want to do...");
                             } else {
                                 System.out.println("Got new player: " + newPlayerName);
                                 respHeader.put("type", "menuOpts");
@@ -197,8 +208,11 @@ public class SockServer {
                                     respHeader.put("type", "gameOver");
                                     respHeader.put("ok", true);
                                     respPayload.put("value", "[MoviePixel Inc]: Your time ran out. Game over! Final score: " + finalScore +
-                                                    ". Highest Score: " + highestScore);
+                                                    ". Absolute Highest Score: " + highestScore);
                                     respPayload = sendImg("img/lose.jpg", respPayload);
+                                    //Update leaderboard
+                                    LeaderboardManager.updateLeaderboard(playerName, finalScore, playerState.optInt("duration"));
+
                                 } else{
                                     if (action.equalsIgnoreCase("skip")) {
                                         int skipsRemaining = playerState.optInt("skipsAllowed", 0);
@@ -326,6 +340,8 @@ public class SockServer {
                                                 }
                                                 respPayload.put("points", points);
                                                 respPayload = sendImg("img/win.jpg", respPayload);
+                                                // Update leaderboard
+                                                LeaderboardManager.updateLeaderboard(playerName, points, playerState.optInt("duration"));
                                             }
                                         } else {
                                             respHeader.put("type", "gameUpdate");
