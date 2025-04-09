@@ -88,7 +88,6 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		frame.add(outputPanel, c);
 
 		picPanel.newGame(1);
-		insertImage("img/TheDarkKnight1.png", 0, 0);
 
 		open(); // opening server connection here
 
@@ -113,6 +112,12 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		JSONObject json = new JSONObject(string);
 		outputPanel.appendOutput(json.getJSONObject("payload").optString("value"));
 
+		String base64Image = json.getJSONObject("payload").optString("imageBase64", "");
+		try {
+			picPanel.readBase64Img(base64Image, 0, 0);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		// reading out the image (abstracted here as just a string)
 		/// would put image in picture panel
 		//close(); //closing the connection to server
@@ -168,13 +173,13 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	 * just ended.
 	 * 
 	 */
-	public void showPlayAgainMenu(){
+	public void showPlayAgainMenu(String endGameMessage){
 		String[] options = { "Logout", "Leaderboard", "Play Again" };
 
 		// Display option dialog on the Event Dispatch Thread (EDT)
 		int option = JOptionPane.showOptionDialog(
 			frame, 
-			"Do you want to play again or logout?", 
+			endGameMessage + " Do you want to play again or logout?", 
 			"Game Over", 
 			JOptionPane.DEFAULT_OPTION, 
 			JOptionPane.QUESTION_MESSAGE, 
@@ -191,7 +196,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		case 1: 
 			clientState = "leaderboard";
 			outputPanel.appendOutput("Showing leaderboard... (TODO: implement leaderboard view)");
-			showPlayAgainMenu();
+			showPlayAgainMenu(endGameMessage);
 			break;
 		case 2: 
 			clientState = "promptGameLength";
@@ -201,7 +206,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			break;
 		default: 
 			outputPanel.appendOutput("Nothing selected! Please try again.");
-			showPlayAgainMenu();
+			showPlayAgainMenu(endGameMessage);
 			break;
 		}
 	}
@@ -228,7 +233,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			// Read the server response
 			String response = bufferedReader.readLine();
 			JSONObject respJson = new JSONObject(response);
-			System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
+			//System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
 			JSONObject respPayload = respJson.getJSONObject("payload");
 			String message = respPayload.optString("value");
 			outputPanel.appendOutput(message);
@@ -293,9 +298,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 
 	/**
 	 * Submit button handling
-	 * 
-	 * TODO: This is where your logic will go or where you will call appropriate methods you write. 
-	 * Right now this method opens and closes the connection after every interaction, if you want to keep that or not is up to you. 
+	 * Handle sending appropriate requests to server after submit button is pressed.
 	 */
 	@Override
 	public void submitClicked() {
@@ -325,7 +328,6 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 				reqPayload.put("value", input);
 
 			} else {
-				// TODO FALL BACK
 				reqHeader.put("type", "unknown");
 				reqHeader.put("ok", false);
 				reqPayload.put("value", input);
@@ -340,7 +342,7 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 			// Read the server response
 			String response = bufferedReader.readLine();
 			JSONObject respJson = new JSONObject(response);
-			System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
+			//System.out.println("[DEBUG] -> Server Response Received: " + respJson.toString());
 	
 			JSONObject respHeader = respJson.getJSONObject("header");
 			JSONObject respPayload = respJson.getJSONObject("payload");
@@ -351,7 +353,15 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 				int updatedPoints = respPayload.optInt("points", 0);
 				outputPanel.setPoints(updatedPoints);
 			}
-
+			
+			String base64Image = respPayload.optString("imageBase64", "");
+			if (!base64Image.isEmpty()) {
+				try {
+					picPanel.readBase64Img(base64Image, 0, 0);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			// Handle client state based on server response
 			if (respHeader.optBoolean("ok", true)) {
 				String type = respHeader.optString("type", "");
@@ -361,14 +371,15 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 				} else if (type.equals("gameUpdate") || type.equals("info")) {
 					clientState = "inGame";
 
-				} else if (type.equals("menuOpts") || (type.equals("gameOver"))) {
+				} else if (type.equals("menuOpts") || (type.equals("gameOver") || type.equals("gameWin"))) {
 					clientState = "menuOpts";
 					clientName = reqHeader.optString("playerName", clientName);
 					outputPanel.setPoints(0);
 					if (type.equals("menuOpts")){
 						showMenu();
 					} else{
-						showPlayAgainMenu();
+						String dialogMessage = respPayload.optString("value").replace("[MoviePixel Inc]:", "").trim();
+						showPlayAgainMenu(dialogMessage);
 					}
 				}
 			} else {
