@@ -139,7 +139,7 @@ public class OutputPanel extends JPanel {
     DefaultCaret caret = (DefaultCaret) area.getCaret();
     caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 
-    JButton quitButton = new JButton("Quit Game");
+    JButton quitButton = new JButton("DISCONNECT (Quit Game)");
         quitButton.addActionListener(e -> {
             if (quitCallback != null) {
                 quitCallback.run();

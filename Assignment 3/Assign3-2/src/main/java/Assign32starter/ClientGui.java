@@ -136,7 +136,7 @@ public class ClientGui implements OutputPanel.EventHandlers {
      */
     public void showMenu(){
 		cardLayout.show(cards, "game");
-        String[] options = { "Quit", "Leaderboard", "Start" };
+        String[] options = { "Logout", "Leaderboard", "Start" };
         int option = JOptionPane.showOptionDialog(
             frame, 
             "Please select from the menu:", 
