@@ -42,11 +42,18 @@ public class SockServer {
 				OutputStream out = sock.getOutputStream();
 
 				String s = (String) in.readObject();
-				JSONObject json = new JSONObject(s); // the requests that is received
+				JSONObject response = new JSONObject(); // response to send out
+				JSONObject respHeader = new JSONObject();
+				JSONObject respPayload = new JSONObject();
 
-				JSONObject response = new JSONObject();
 
-				if (json.getString("type").equals("start")){
+				JSONObject jsonRecieved = new JSONObject(s); // the requests that is received
+				JSONObject headerRecieved = jsonRecieved.getJSONObject("header");
+				JSONObject payloadReceived = jsonRecieved.getJSONObject("payload");
+
+				System.out.println("[DEBUG] -> Client Request Received: " + jsonRecieved);
+
+				if (headerRecieved.getString("type").equals("start")){
 					
 					System.out.println("- Got a start");
 				
@@ -54,12 +61,26 @@ public class SockServer {
 					response.put("value","Hello, please tell me your name." );
 					sendImg("img/hi.png", response); // calling a method that will manipulate the image and will make it send ready
 					
+				} else if (headerRecieved.getString("type").equals("name")){
+					String newPlayerName = payloadReceived.optString("value", "Player");
+					System.out.println("Got new player: " + newPlayerName);
+
+					respHeader.put("type", "menuOpts");
+					respHeader.put("ok", true);
+					respHeader.put("playerName", newPlayerName);
+					respPayload.put("value", "Hello " + newPlayerName + ", welcome to the Movie Game! Please select above what you want to do...");
+
+
 				}
 				else {
 					System.out.println("not sure what you meant");
-					response.put("type","error" );
-					response.put("message","unknown response" );
+					// response.put("type","error" );
+					// response.put("message","unknown response" );
 				}
+				response.put("header", respHeader);
+				response.put("payload", respPayload);
+
+
 				PrintWriter outWrite = new PrintWriter(sock.getOutputStream(), true); // using a PrintWriter here, you could also use and ObjectOutputStream or anything you fancy
 				outWrite.println(response.toString());
 			}

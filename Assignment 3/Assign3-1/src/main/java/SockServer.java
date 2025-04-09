@@ -320,7 +320,7 @@ public class SockServer {
               }
           }
       }
-      if (System.currentTimeMillis() - quizGameStartTime >= 10000) {
+      if (System.currentTimeMillis() - quizGameStartTime >= 120000) {
         res = new JSONObject();
         res.put("type", "quizgame");
         res.put("ok", false);

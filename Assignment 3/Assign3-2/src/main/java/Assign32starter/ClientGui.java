@@ -41,11 +41,12 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	PicturePanel picPanel;
 	OutputPanel outputPanel;
 	String currentMess;
-
 	Socket sock;
 	OutputStream out;
 	ObjectOutputStream os;
 	BufferedReader bufferedReader;
+	private String clientState;
+	String clientName;
 
 	// TODO: SHOULD NOT BE HARDCODED change to spec
 	String host = "localhost";
@@ -56,9 +57,11 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	 * @throws IOException 
 	 */
 	public ClientGui(String host, int port) throws IOException {
+		clientState = "initName";
+		clientName = "";
 		this.host = host; 
 		this.port = port; 
-	
+		
 		frame = new JDialog();
 		frame.setLayout(new GridBagLayout());
 		frame.setMinimumSize(new Dimension(500, 500));
@@ -87,12 +90,22 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 		insertImage("img/TheDarkKnight1.png", 0, 0);
 
 		open(); // opening server connection here
-		currentMess = "{'type': 'start'}"; // very initial start message for the connection
+
+		JSONObject startRequest = new JSONObject();
+		JSONObject header = new JSONObject();
+		JSONObject payload = new JSONObject();
+
+		header.put("type", "start");
+		header.put("player", clientName);  // clientName will be empty in this init
+		header.put("ok", true);
+		startRequest.put("header", header);
+		startRequest.put("payload", payload);
+
 		try {
-			os.writeObject(currentMess);
+			os.writeObject(startRequest.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
+}
 
 		String string = this.bufferedReader.readLine();
 		System.out.println("Got a connection to server");
@@ -164,33 +177,41 @@ public class ClientGui implements Assign32starter.OutputPanel.EventHandlers {
 	@Override
 	public void submitClicked() {
 		try {
-		open(); // opening a server connection again
-		System.out.println("submit clicked ");
-
-		// Pulls the input box text
-		String input = outputPanel.getInputText();
-
-		// TODO evaluate the input from above and create a request for client. 
-
-		// send request to server
-		try {
-			  os.writeObject("Blub"); // this will crash the server, since it is not a JSON and thus the server will not handle it. 
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			open();
+			String input = outputPanel.getInputText().trim();
+			JSONObject request = new JSONObject();
+			JSONObject reqHeader = new JSONObject();
+			JSONObject reqPayload = new JSONObject();
+			
+			if (clientState.equals("initName")) {
+				reqHeader.put("type", "name");
+				reqHeader.put("playerName", input);
+				reqHeader.put("ok", true);
+				reqPayload.put("value", input);
+				clientState = "menuOpts";
+				clientName = input;
+			} else {
+				//TODO
+				reqHeader.put("type", "unknown");
+				reqHeader.put("ok", false);
+				reqPayload.put("value", input);
 			}
+			System.out.println("Client state: " + clientState);
+			request.put("header", reqHeader);
+			request.put("payload", reqPayload);
+			
+			os.writeObject(request.toString());
+			System.out.println(request);
+			String response = bufferedReader.readLine();
+			JSONObject respJson = new JSONObject(response);
 
-		// wait for an answer and handle accordingly
-		try {
-			System.out.println("Waiting on response");
-			String string = this.bufferedReader.readLine();
-			System.out.println(string);
+			System.out.println("[DEBUG] -> Server Response Received: " + respJson);
+
+			String message = respJson.getJSONObject("payload").optString("value");
+			outputPanel.appendOutput(message);
+			
+			close();
 		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
