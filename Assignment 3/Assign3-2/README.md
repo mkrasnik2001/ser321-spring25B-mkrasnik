@@ -41,7 +41,7 @@ Each message between the client and server is a JSON object with two main parts:
   "header": {
     "type": "<messageType>",    
     "playerName": "<String>",     
-    "ok": true/false            
+    "ok": true or false            
   },
   "payload": {}
 }
