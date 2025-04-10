@@ -39,13 +39,11 @@ Each message between the client and server is a JSON object with two main parts:
 ```json
 {
   "header": {
-    "type": "<messageType>",      // See below for details.
-    "playerName": "<String>",     // The player's name (if applicable).
-    "ok": true/false             // true if the previous operation succeeded; false otherwise.
+    "type": "<messageType>",    
+    "playerName": "<String>",     
+    "ok": true/false            
   },
-  "payload": {
-    // Additional information such as "value", "duration", "points", "imageBase64", etc.
-  }
+  "payload": {}
 }
 ```
 ---
