@@ -34,8 +34,8 @@ public class ClientGui implements OutputPanel.EventHandlers {
     private LeaderboardPanel leaderboardPanel;
     
     // TODO: SHOULD NOT BE HARDCODED change to spec
-    String host = "localhost";
-    int port = 9000;
+    String host;
+    int port;
     
     /**
      * Construct dialog.
@@ -478,13 +478,14 @@ public class ClientGui implements OutputPanel.EventHandlers {
     }
     
     public static void main(String[] args) throws IOException {
-        try {
-            String host = "localhost";
-            int port = 8888;
-            ClientGui main = new ClientGui(host, port);
-            main.show(true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+		try {
+			int port = args.length > 0 ? Integer.parseInt(args[0]) : 9000;
+			String host = args.length > 1 ? args[1] : "localhost";
+			ClientGui main = new ClientGui(host, port);
+			main.show(true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 }

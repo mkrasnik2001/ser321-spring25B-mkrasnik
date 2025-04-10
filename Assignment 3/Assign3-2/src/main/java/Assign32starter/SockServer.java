@@ -22,8 +22,8 @@ public class SockServer {
     public static void main (String args[]) {
         Socket sock;
         try {
-            //opening the socket here, just hard coded since this is just a bas example
-            ServerSocket serv = new ServerSocket(8888); // TODO, should not be hardcoded
+            int port = args.length > 0 ? Integer.parseInt(args[0]) : 8888;
+            ServerSocket serv = new ServerSocket(port);
             System.out.println("Server ready for connetion");
 
             while(true) {

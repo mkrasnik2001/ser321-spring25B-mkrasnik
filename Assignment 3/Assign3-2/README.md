@@ -3,6 +3,16 @@
 This project is a single player client - server application where the client connects to the server and is given images of different movies to guess. The client wins points by guessing correctly and has the option to get a clearer image from the server of the current movie. There are limitations to this and there is also a leaderboard that tracks the performance of all the players. Players play one at a time, but the leaderboard is persistent. The server is responsible for the game logic and state management of the round. It validates inputs, handles errors and uses a custom JSON protocol that will be described below to communcate with the client.
 
 ---
+### How to Run
+On the EC2, it is running the compiled .jar file and for it to work correctly remotely, I need to implement an environment variable file for the server to correctly pull the images
+and the leadeboard xml, if this is not a assignment requirment then to run locally do the following:
+1. `git pull` the default branch
+2. `cd` in to Assignment\ 3/Assign3-2
+3. run `gradle clean build`
+4. run the server using `gradle runServer`. Locally this will be the same as `gradle runServer -pPort=8888`
+5. run the client using `gradle runClient`. Locally this will be the same as `gradle runClient -Phost=127.0.01 -Pport=8888`
+
+---
 
 ## Requirements Checklist
 
