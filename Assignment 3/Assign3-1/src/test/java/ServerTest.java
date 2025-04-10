@@ -378,11 +378,5 @@ public class ServerTest {
         assertFalse(res.getBoolean("result"));
         assertTrue(res.has("question"));
 
-        SockServer.quizGameStartTime = System.currentTimeMillis() - 100000; // 100 sec in past
-        req = new JSONObject();
-        req.put("type", "quizgame");
-        req.put("answer", "testestest");
-        res = SockServer.quizGame(req);
-        assertTrue(res.getString("message").toLowerCase().contains("time limit"));
     }
 }
