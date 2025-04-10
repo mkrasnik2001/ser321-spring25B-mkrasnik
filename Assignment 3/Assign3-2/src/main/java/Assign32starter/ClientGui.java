@@ -48,7 +48,7 @@ public class ClientGui implements OutputPanel.EventHandlers {
         clientName = "";
         this.host = host; 
         this.port = port;
-        
+        System.out.println("[DEBUG] -> " + host + " " + port);
         frame = new JDialog();
         frame.setLayout(new GridBagLayout());
         frame.setMinimumSize(new Dimension(1000, 600));
@@ -479,7 +479,7 @@ public class ClientGui implements OutputPanel.EventHandlers {
     
     public static void main(String[] args) throws IOException {
 		try {
-			int port = args.length > 0 ? Integer.parseInt(args[0]) : 9000;
+			int port = args.length > 0 ? Integer.parseInt(args[0]) : 8888;
 			String host = args.length > 1 ? args[1] : "localhost";
 			ClientGui main = new ClientGui(host, port);
 			main.show(true);

@@ -20,7 +20,7 @@ task runClient(type: JavaExec) {
 
   main = 'Assign32starter.ClientGui'
   standardInput = System.in
-  def portArg = project.hasProperty('port') ? project.property('port') : '9000'
+  def portArg = project.hasProperty('port') ? project.property('port') : '8888'
   def hostArg = project.hasProperty('host') ? project.property('host') : 'localhost'
   args portArg, hostArg
 }
