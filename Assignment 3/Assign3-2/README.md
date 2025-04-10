@@ -463,7 +463,7 @@ during the round when a correct guess is made.
 
 
 ## ScreenCast Link ##
-LINK
+[ScreenCast Link](https://youtu.be/jAGGDJQ3BDI)
 
 
 ## Robustness Information ##
