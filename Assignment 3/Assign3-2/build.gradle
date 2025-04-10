@@ -3,7 +3,8 @@ apply plugin: 'application'
 
 //define main class
 mainClassName = 'Concentration'
-
+// sourceCompatibility = '21'
+// targetCompatibility = '21'
 repositories {
     mavenCentral()
 }
@@ -14,20 +15,34 @@ dependencies {
 
 task runClient(type: JavaExec) {
   group 'gui'
-  description 'Displays a GUI for a game of concentration'
-
+  description 'Displays a GUI for the Movie Guessing Game Client'
   classpath = sourceSets.main.runtimeClasspath
 
   main = 'Assign32starter.ClientGui'
   standardInput = System.in
-  args "1"
+  def portArg = project.hasProperty('port') ? project.property('port') : '9000'
+  def hostArg = project.hasProperty('host') ? project.property('host') : 'localhost'
+  args portArg, hostArg
 }
 
 task runServer(type: JavaExec) {
   group 'gui'
-  description 'Displays a GUI for a game of concentration'
-
+  description 'Runs the Movie Guessing Game Server'
   classpath = sourceSets.main.runtimeClasspath
-
   main = 'Assign32starter.SockServer'
+  def portArg = project.hasProperty('port') ? project.property('port') : '8888'
+  args portArg
+}
+
+// For AWS .jar file
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'Assign32starter.SockServer'
+    }
+    archiveBaseName = "${project.name}-all"
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

@@ -30,3 +30,4 @@ bin/
 build/
 .vscode/
 cls/
+*.xml

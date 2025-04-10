@@ -7,6 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Base64;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -122,6 +123,27 @@ public class PicturePanel extends JPanel {
     }
   }
   
+  /**
+   * 
+   * @param base64 - encoded image str in base 64
+   * @param r - row in grid to insert img
+   * @param c - col in grid to insert img
+   * @throws IOException
+   * @throws InvalidCoordinateException
+   */
+  public void readBase64Img(String base64, int r, int c) throws IOException, InvalidCoordinateException{
+    byte[] imageInBytes = Base64.getDecoder().decode(base64);
+    ByteArrayInputStream byteStream = new ByteArrayInputStream(imageInBytes);
+    BufferedImage img = ImageIO.read(byteStream);
+    if (img == null) {
+        throw new IOException("Cannot decode image from Base64 string.");
+    }
+    ImageIcon icon = new ImageIcon(img);
+    handleFirstImage(icon.getIconWidth(), icon.getIconHeight());
+    labels[r][c].setIcon(icon);
+  }
+
+
   /**
    * Insert an image at position at (col, row)
    * @param fname - filename of image to display
