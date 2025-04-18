@@ -35,6 +35,18 @@ public class ThreadPoolServer {
                 System.exit(2);
             }
         }
+
+        String poolProperty = System.getProperty("pool");
+        if (poolProperty != null) {
+            try {
+                threadCount = Integer.parseInt(poolProperty);
+            } catch (NumberFormatException nfe) {
+                System.err.println("[pool] must be an integer");
+                System.exit(2);
+            }
+        }
+
+        System.out.println("Thread pool limit: " + threadCount);
         ExecutorService pool = Executors.newFixedThreadPool(threadCount);
         ServerSocket server = new ServerSocket(port);
         System.out.println("Server Started...");

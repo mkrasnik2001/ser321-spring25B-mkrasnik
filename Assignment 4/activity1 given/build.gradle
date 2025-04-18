@@ -58,7 +58,6 @@ task runTask3(type: JavaExec) {
   main = 'taskone.ThreadPoolServer'
   standardInput = System.in
   
-  // run with arguments e.g.: gradle runServer -Pport=9099 -Ppool=3 -q --console=plain
   if (project.hasProperty('host')){
     args(project.getProperty('host'))
   }
@@ -67,6 +66,7 @@ task runTask3(type: JavaExec) {
     args(project.getProperty('port'));
   }
   if (project.hasProperty('pool')){
+    jvmArgs "-Dpool=${project.pool}"
     args(project.getProperty('pool'))
   }
 }
