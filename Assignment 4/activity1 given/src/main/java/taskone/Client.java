@@ -90,24 +90,22 @@ public class Client {
      * Function main().
      */
     public static void main(String[] args) throws IOException {
-        String host;
-        int port;
+        String host = "localhost";
+        int port = 8000;
         Socket sock;
         stdin = new BufferedReader(new InputStreamReader(System.in));
         try {
-            if (args.length != 2) {
-                // gradle runClient -Phost=localhost -Pport=9099 -q --console=plain
-                System.out.println("Usage: gradle Client -Phost=localhost -Pport=9099");
-                System.exit(0);
+            // Check if arguments are provided
+            if (args.length >= 1) {
+                host = args[0];
             }
 
-            host = args[0];
-            port = -1;
-            try {
-                port = Integer.parseInt(args[1]);
-            } catch (NumberFormatException nfe) {
-                System.out.println("[Port] must be an integer");
-                System.exit(2);
+            if (args.length >= 2) {
+                try {
+                    port = Integer.parseInt(args[1]);
+                } catch (NumberFormatException nfe) {
+                    System.exit(2);
+                }
             }
 
             sock = new Socket(host, port);

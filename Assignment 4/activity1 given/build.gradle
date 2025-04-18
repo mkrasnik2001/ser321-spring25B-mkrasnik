@@ -11,7 +11,7 @@ dependencies {
 //define main class
 mainClassName = 'Concentration'
 
-task runServer(type: JavaExec) {
+task runSTask1(type: JavaExec) {
   group 'server'
   description 'Creates Server socket waits for messages'
 
@@ -21,10 +21,56 @@ task runServer(type: JavaExec) {
   standardInput = System.in
   
   // run with arguments e.g.: gradle runServer -Pport=9099 -q --console=plain
+  if (project.hasProperty('host')){
+    args(project.getProperty('host'))
+  }
+  if (project.hasProperty('port')) {
+    args(project.getProperty('port'));
+  }
+
+}
+
+task runTask2(type: JavaExec) {
+  group 'server'
+  description 'Runs the Threaded Server version for multiple clients'
+
+  classpath = sourceSets.main.runtimeClasspath
+
+  main = 'taskone.ThreadedServer'
+  standardInput = System.in
+  
+
+  if (project.hasProperty('host')){
+    args(project.getProperty('host'))
+  }
+
   if (project.hasProperty('port')) {
     args(project.getProperty('port'));
   }
 }
+
+task runTask3(type: JavaExec) {
+  group 'server'
+  description 'Runs the Threaded Server version for multiple clients but with implemented pool'
+
+  classpath = sourceSets.main.runtimeClasspath
+
+  main = 'taskone.ThreadPoolServer'
+  standardInput = System.in
+  
+  // run with arguments e.g.: gradle runServer -Pport=9099 -Ppool=3 -q --console=plain
+  if (project.hasProperty('host')){
+    args(project.getProperty('host'))
+  }
+
+  if (project.hasProperty('port')) {
+    args(project.getProperty('port'));
+  }
+  if (project.hasProperty('pool')){
+    args(project.getProperty('pool'))
+  }
+}
+
 
 task runClient(type: JavaExec) {
   group 'client'
