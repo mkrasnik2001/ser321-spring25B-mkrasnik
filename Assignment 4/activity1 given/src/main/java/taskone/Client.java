@@ -79,6 +79,13 @@ public class Client {
         return request;
     }
 
+    public static JSONObject defaultreq(int choiceVal) {
+        JSONObject request = new JSONObject();
+        request.put("selected", choiceVal);
+        request.put("data", ".");
+        return request;
+    }
+
     /**
      * Function main().
      */
@@ -113,8 +120,8 @@ public class Client {
                 System.out.println("Client Menu");
                 System.out.println("Please select a valid option (1-5). 0 to diconnect the client");
                 System.out.println("1. add <string> - adds a string to the list and display it");
-                System.out.println("2. display - display the list");
-                System.out.println("3. count - returns the elements in the list");
+                System.out.println("3. display - display the list");
+                System.out.println("4. count - returns the elements in the list");
                 System.out.println("0. quit");
                 System.out.println();
                 choice = input.nextInt(); // what if not int.. should error handle this
@@ -134,6 +141,7 @@ public class Client {
                         break;
                     default:
                         System.out.println("Please select a valid option (0-6).");
+                        request = defaultreq(choice);
                         break;
                 }
                 if (request != null) {
@@ -148,7 +156,7 @@ public class Client {
                         System.out.println();
                         System.out.println("The response from the server: ");
                         System.out.println("datatype: " + response.getString("type"));
-                        System.out.println("data: " + response.getString("data"));
+                        System.out.println("data: " + response.get("data"));
                         System.out.println();
                         String typeStr = (String) response.getString("type");
                         if (typeStr.equals("quit")) {

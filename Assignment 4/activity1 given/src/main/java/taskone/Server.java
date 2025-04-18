@@ -17,6 +17,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import org.json.JSONObject;
 
+import netscape.javascript.JSException;
+
 /**
  * Class: Server
  * Description: Server tasks.
@@ -57,6 +59,7 @@ class Server {
         boolean quit = false;
         OutputStream out = null;
         InputStream in = null;
+        int choice = 9999;
         try {
             out = conn.getOutputStream();
             in = conn.getInputStream();
@@ -66,11 +69,25 @@ class Server {
                 JSONObject message = JsonUtils.fromByteArray(messageBytes);
                 JSONObject returnMessage = new JSONObject();
 
-                int choice = message.getInt("selected");
+                try {
+                    choice = message.getInt("selected");
+                } catch (JSException e) {
+                    returnMessage = performer.error("Must be an int try again!");
+                }
                 switch (choice) {
                     case (1):
                         String inStr = (String) message.get("data");
                         returnMessage = performer.add(inStr);
+                        break;
+                    case (3):
+                        returnMessage = performer.display();
+                        break;
+                    case (4):
+                        returnMessage = performer.count();
+                        break;
+                    case (0):
+                        returnMessage = performer.quit();
+                        quit = true;
                         break;
                     default:
                         returnMessage = performer.error("Invalid selection: " + choice
