@@ -65,6 +65,22 @@ public class ClientWorker implements Runnable {
                 .build();
     }
     
+    private Response handleStart(Request r){
+        int difficulty = 1;
+        if (r.hasDifficulty()){
+            difficulty = r.getDifficulty();
+        }
+        game.newGame(isForGrading, difficulty);
+        return Response.newBuilder()
+                .setResponseType(Response.ResponseType.START)
+                .setBoard(game.getDisplayBoard())
+                .setMenuoptions(gameOptions)
+                .setPoints(game.getPoints())
+                .setNext(3)
+                .build();
+    }
+
+
 
 
 
@@ -100,6 +116,7 @@ private void handleFlow() throws IOException{
         switch (request.getOperationType()){
             case NAME -> response = handlePlayerName(request);
             case LEADERBOARD -> response = handleLb();
+            case START -> response = handleStart(request);
             default -> response = errorResp(2, request.getOperationType().name());
         }
 

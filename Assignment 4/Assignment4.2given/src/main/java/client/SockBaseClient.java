@@ -61,6 +61,15 @@ class SockBaseClient {
                         next.writeDelimitedTo(out);
                         out.flush();
                     }
+
+                    case START, PLAY -> {
+                        System.out.println("\n=== Simple Sudoku ===");
+                        System.out.println(response.getBoard());
+                        System.out.println(response.getMenuoptions());
+                      //  inGameLoop(out);
+                        continue;
+                    }
+
                     case ERROR -> {
                         System.out.println("Error: " + response.getMessage() +
                                            " Type: " + response.getErrorType());
@@ -110,9 +119,15 @@ class SockBaseClient {
                             .setOperationType(Request.OperationType.LEADERBOARD)
                             .build();
                 case "2":
+                    System.out.print("Choose difficulty (1‑20): ");
+                    int diff = Integer.parseInt(
+                                    new BufferedReader(new InputStreamReader(System.in))
+                                    .readLine().trim());
                     return Request.newBuilder()
                             .setOperationType(Request.OperationType.START)
+                            .setDifficulty(diff)
                             .build();
+                
                 case "3":
                     return Request.newBuilder()
                             .setOperationType(Request.OperationType.QUIT)
