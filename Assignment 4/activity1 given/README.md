@@ -53,11 +53,12 @@ General Error Response:
 ### Terminal
 Base Code, please use the following commands:
 ```
-    For Server, run "gradle runServer -Pport=9099 -q --console=plain"
+    For Servers, run "gradle runTask1", "gradle runTask2", "gradle runTask3"
 ```
 ```   
-    For Client, run "gradle runClient -Phost=localhost -Pport=9099 -q --console=plain"
+    For Client, run "gradle runClient -q --console=plain"
 ```   
 
 
-
+## Screencast Link
+[https://youtu.be/mxX0w0fa3pM]
