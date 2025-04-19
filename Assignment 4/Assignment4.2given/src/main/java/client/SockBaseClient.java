@@ -7,6 +7,8 @@ import java.io.*;
 import java.net.Socket;
 
 class SockBaseClient {
+    private static final InGameLoop IN_GAME_LOOP = new InGameLoop();
+
     public static void main (String[] args) throws Exception {
         Socket serverSock = null;
         OutputStream out = null;
@@ -43,6 +45,7 @@ class SockBaseClient {
 
             while (true) {
                 response = Response.parseDelimitedFrom(in);
+                if (response == null) break;
             
                 switch (response.getResponseType()) {
                     case GREETING -> {
@@ -51,31 +54,38 @@ class SockBaseClient {
                         next.writeDelimitedTo(out);
                         out.flush();
                     }
-            
                     case LEADERBOARD -> {
                         System.out.println("\n=== Leaderboard ===");
                         response.getLeaderList().forEach(e ->
                             System.out.printf("%-12s %4d pts (%d logins)%n",
                                               e.getName(), e.getPoints(), e.getLogins()));
-                        Request next = chooseMenu(response); // back to main menu
+                        System.out.println(response.getMenuoptions());
+                        Request next = chooseMenu(response);
                         next.writeDelimitedTo(out);
                         out.flush();
                     }
-
-                    case START, PLAY -> {
-                        System.out.println("\n=== Simple Sudoku ===");
-                        System.out.println(response.getBoard());
-                        System.out.println(response.getMenuoptions());
-                      //  inGameLoop(out);
-                        continue;
-                    }
-
-                    case ERROR -> {
-                        System.out.println("Error: " + response.getMessage() +
-                                           " Type: " + response.getErrorType());
-                        Request retry = nameRequest().build();
-                        retry.writeDelimitedTo(out);
+                    case START -> {
+                        Response wonResp = IN_GAME_LOOP.runLoop(serverSock, in, out, response);
+                        Request next = chooseMenu(wonResp);
+                        next.writeDelimitedTo(out);
                         out.flush();
+                    }
+                    case ERROR -> {
+                        System.out.println(response.getMessage());
+                        Request next = switch(response.getNext()) {
+                            case 1 -> nameRequest().build();
+                            default -> chooseMenu(response);
+                        };
+                        next.writeDelimitedTo(out);
+                        out.flush();
+                    }
+                    case BYE -> {
+                        System.out.println(response.getMessage());
+                        return;
+                    }
+                    default -> {
+                        System.out.println("Unexpected response: " + response);
+                        return;
                     }
                 }
             }
@@ -118,15 +128,24 @@ class SockBaseClient {
                     return Request.newBuilder()
                             .setOperationType(Request.OperationType.LEADERBOARD)
                             .build();
-                case "2":
-                    System.out.print("Choose difficulty (1‑20): ");
-                    int diff = Integer.parseInt(
-                                    new BufferedReader(new InputStreamReader(System.in))
-                                    .readLine().trim());
+                case "2": {
+                    int diff;
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                    while (true) {
+                        System.out.print("Choose difficulty (1‑20): ");
+                        String line = reader.readLine().trim();
+                        try {
+                            diff = Integer.parseInt(line);
+                            break;
+                        } catch (NumberFormatException e) {
+                            System.out.println("Not a valid integer, try again!");
+                        }
+                    }
                     return Request.newBuilder()
                             .setOperationType(Request.OperationType.START)
                             .setDifficulty(diff)
                             .build();
+                }
                 
                 case "3":
                     return Request.newBuilder()

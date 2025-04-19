@@ -64,6 +64,7 @@ public class Game {
         if (won) {
             won = false;
             if (!grading) {
+                System.out.println("GRADING " + grading);
                 create();
                 prepareForPlay();
             } else {
@@ -117,7 +118,8 @@ public class Game {
      * @return Nothing.
      */
     public void newBoard(boolean grading){
-        newGame(grading, difficulty);
+        this.won = true;
+        newGame(grading, this.difficulty);
     }
 
 
@@ -161,7 +163,7 @@ public class Game {
      * Creates a completely new Sudoku board with Xs
      * @return Nothing.
      */
-    private void prepareForPlay() {
+    public void prepareForPlay() {
         int empties = difficulty;
 
         int maxCells = (int) Math.ceil((double) (size * size) / 2);
@@ -436,4 +438,21 @@ public class Game {
     public int setPoints(int diff) {
         return points += diff;
     }
+
+    /**
+    * Gets the solved board for the current one in play
+    */
+    public String getSolBoard() {
+        StringBuilder sBuilder= new StringBuilder();
+        for (int row = 0; row < size; row++) {
+            if (row > 0 && row % 3 == 0) sBuilder.append("\n");
+            for (int col = 0; col < size; col++) {
+                if (col > 0 && col % 3 == 0) sBuilder.append("  ");
+                sBuilder.append(solvedBoard[row][col]).append(' ');
+            }
+            sBuilder.append("\n");
+        }
+        return sBuilder.toString();
+    }
+
 }
