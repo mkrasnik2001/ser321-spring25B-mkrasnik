@@ -229,9 +229,9 @@ class SockBaseServer {
         }
         int port = 8000; // default port
         grading = Boolean.parseBoolean(args[1]);
-        Socket clientSocket = null;
+        boolean isForGrading = Boolean.parseBoolean(args[1]);
         ServerSocket socket = null;
-
+        System.out.println("[DEBUG] -> Grading Mode: " + grading);
         try {
             port = Integer.parseInt(args[0]);
         } catch (NumberFormatException nfe) {
@@ -246,16 +246,16 @@ class SockBaseServer {
             System.exit(2);
         }
         int id = 1;
+        LeaderboardSingleton.LB_INSTANCE.loadLb();
         while (true) {
             try {
-                clientSocket = socket.accept();
+                Socket clientSocket = socket.accept();
                 System.out.println("Attempting to connect to client-" + id);
-                Game game = new Game();
-                SockBaseServer server = new SockBaseServer(clientSocket, game, id++);
-                server.startGame();
+                Thread t = new Thread(new ClientWorker(clientSocket, id++, isForGrading));
+                t.start();
             } catch (Exception e) {
                 System.out.println("Error in accepting client connection.");
             }
         }
-    }
+}
 }

@@ -7,6 +7,8 @@ import java.io.*;
 import java.net.Socket;
 
 class SockBaseClient {
+    private static final InGameLoop IN_GAME_LOOP = new InGameLoop();
+
     public static void main (String[] args) throws Exception {
         Socket serverSock = null;
         OutputStream out = null;
@@ -39,30 +41,53 @@ class SockBaseClient {
             in = serverSock.getInputStream();
 
             op.writeDelimitedTo(out);
+            out.flush();
 
             while (true) {
-                // read from the server
                 response = Response.parseDelimitedFrom(in);
-                System.out.println("Got a response: " + response.toString());
-
-                Request.Builder req = Request.newBuilder();
-
+                if (response == null) break;
+            
                 switch (response.getResponseType()) {
-                    case GREETING:
+                    case GREETING -> {
                         System.out.println(response.getMessage());
-                        req = chooseMenu(req, response);
-                        break;
-                    case ERROR:
-                        System.out.println("Error: " + response.getMessage() + "Type: " + response.getErrorType());
-                        if (response.getNext() == 1) {
-                            req = nameRequest();
-                        } else {
-                            System.out.println("That error type is not handled yet");
-                            req = nameRequest();
-                        }
-                        break;
+                        Request next = chooseMenu(response);
+                        next.writeDelimitedTo(out);
+                        out.flush();
+                    }
+                    case LEADERBOARD -> {
+                        System.out.println("\n=== Leaderboard ===");
+                        response.getLeaderList().forEach(e ->
+                            System.out.printf("%-12s %4d pts (%d logins)%n",
+                                              e.getName(), e.getPoints(), e.getLogins()));
+                        System.out.println(response.getMenuoptions());
+                        Request next = chooseMenu(response);
+                        next.writeDelimitedTo(out);
+                        out.flush();
+                    }
+                    case START -> {
+                        Response wonResp = IN_GAME_LOOP.runLoop(serverSock, in, out, response);
+                        Request next = chooseMenu(wonResp);
+                        next.writeDelimitedTo(out);
+                        out.flush();
+                    }
+                    case ERROR -> {
+                        System.out.println(response.getMessage());
+                        Request next = switch(response.getNext()) {
+                            case 1 -> nameRequest().build();
+                            default -> chooseMenu(response);
+                        };
+                        next.writeDelimitedTo(out);
+                        out.flush();
+                    }
+                    case BYE -> {
+                        System.out.println(response.getMessage());
+                        return;
+                    }
+                    default -> {
+                        System.out.println("Unexpected response: " + response);
+                        return;
+                    }
                 }
-                req.build().writeDelimitedTo(out);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -89,24 +114,50 @@ class SockBaseClient {
      * Shows the main menu and lets the user choose a number, it builds the request for the next server call
      * @return Request.Builder which holds the information the server needs for a specific request
      */
-    static Request.Builder chooseMenu(Request.Builder req, Response response) throws IOException {
+    static Request chooseMenu(Response response) throws IOException {
         while (true) {
-            System.out.println(response.getMenuoptions());
+            System.out.println(response.getMenuoptions()
+                    .replace("\\n", System.lineSeparator()));
             System.out.print("Enter a number 1-3: ");
-            BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
-            String menu_select = stdin.readLine();
-            System.out.println(menu_select);
-            switch (menu_select) {
-                // needs to include the other requests
-                case "2":
-                    req.setOperationType(Request.OperationType.START); // this is not a complete START request!! Just as example
-                    return req;
+    
+            String sel = new BufferedReader(
+                    new InputStreamReader(System.in)).readLine().trim();
+    
+            switch (sel) {
+                case "1":
+                    return Request.newBuilder()
+                            .setOperationType(Request.OperationType.LEADERBOARD)
+                            .build();
+                case "2": {
+                    int diff;
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                    while (true) {
+                        System.out.print("Choose difficulty (1‑20): ");
+                        String line = reader.readLine().trim();
+                        try {
+                            diff = Integer.parseInt(line);
+                            break;
+                        } catch (NumberFormatException e) {
+                            System.out.println("Not a valid integer, try again!");
+                        }
+                    }
+                    return Request.newBuilder()
+                            .setOperationType(Request.OperationType.START)
+                            .setDifficulty(diff)
+                            .build();
+                }
+                
+                case "3":
+                    return Request.newBuilder()
+                            .setOperationType(Request.OperationType.QUIT)
+                            .build();
                 default:
-                    System.out.println("\nNot a valid choice, please choose again");
-                    break;
+                    System.out.println("Not a valid choice, try again.");
             }
         }
     }
+    
+    
 
     /**
      * Exits the connection
