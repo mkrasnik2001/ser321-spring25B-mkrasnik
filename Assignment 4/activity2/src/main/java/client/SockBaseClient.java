@@ -50,6 +50,8 @@ class SockBaseClient {
                 switch (response.getResponseType()) {
                     case GREETING -> {
                         System.out.println(response.getMessage());
+                        String menu = response.getMenuoptions().replace("\\n", System.lineSeparator());
+                        System.out.println(menu);
                         Request next = chooseMenu(response);
                         next.writeDelimitedTo(out);
                         out.flush();
@@ -116,8 +118,8 @@ class SockBaseClient {
      */
     static Request chooseMenu(Response response) throws IOException {
         while (true) {
-            System.out.println(response.getMenuoptions()
-                    .replace("\\n", System.lineSeparator()));
+            // System.out.println(response.getMenuoptions()
+            //         .replace("\\n", System.lineSeparator()));
             System.out.print("Enter a number 1-3: ");
     
             String sel = new BufferedReader(
