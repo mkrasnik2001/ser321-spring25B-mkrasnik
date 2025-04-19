@@ -5,7 +5,8 @@ plugins {
 }
 
 description = "Protocol Buffers Socket Example"
-
+// sourceCompatibility = '21'
+// targetCompatibility = '21'
 repositories {
     mavenCentral()
 }
@@ -84,4 +85,17 @@ task runServerGrading(type: JavaExec) {
     // default args
     args port
     args true
+}
+
+// For AWS .jar file
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Main-Class': 'server.SockBaseServer'
+    }
+    archiveBaseName = "${project.name}-all"
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
