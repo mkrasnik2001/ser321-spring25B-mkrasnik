@@ -231,7 +231,7 @@ class SockBaseServer {
         grading = Boolean.parseBoolean(args[1]);
         boolean isForGrading = Boolean.parseBoolean(args[1]);
         ServerSocket socket = null;
-
+        System.out.println("[DEBUG] -> Grading Mode: " + grading);
         try {
             port = Integer.parseInt(args[0]);
         } catch (NumberFormatException nfe) {

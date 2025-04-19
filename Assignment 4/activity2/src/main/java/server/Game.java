@@ -104,7 +104,12 @@ public class Game {
                         {'2', '5', '6', '3', '1', '7', '9', '4', '8'}
                 };
 
-
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < size; j++) {
+                        this.solvedBoard[i][j] = solvedBoard[i][j];
+                    }
+                }
+            
             }
 
         }
