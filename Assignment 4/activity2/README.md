@@ -9,7 +9,13 @@ This is a simple Sudoku game. Many players can play a separate game but see the 
    - Default port is `8000` and default host is `localhost`  
    - Port and hostIP specification is optional.  
 5. To run the grading version run `gradle runServerGrading`. This will run the same thing, but with the graded board that also shows up on the server side for convenience.
+---
+### PLEASE NOTE
 
+* The unit test "Testing game flow to Leaderboard" was commented out because of the comment in it: _this test only passes when that person has not logged in yet!! Could be done better but here we are_
+* For `gradle clean build` to work the unit tests have to pass and for them to pass the `gradle runServerGrading` needs to be running. So if these unit tests will be used for grading,
+please comment out the whole unit test file, build the gradle project and then uncomment the unit tests and build again or run `gradle test`. Thank you!
+---
 ## Screencast
 
 ---

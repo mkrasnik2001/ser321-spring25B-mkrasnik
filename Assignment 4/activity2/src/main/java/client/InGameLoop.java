@@ -50,7 +50,6 @@ public final class InGameLoop {
                         .build();
             
             
-            // r c provided
             } else {
                 String[] tokenArray = prompt.split("\\s+");
                 if (tokenArray.length != 3) {

@@ -2,6 +2,8 @@ package server;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.List;
+
 import buffers.RequestProtos.*;
 import buffers.ResponseProtos.*;
 import buffers.ResponseProtos.Response.ResponseType;
@@ -34,40 +36,48 @@ public class ClientWorker implements Runnable {
     }
 
     private Response errorResp(int code, String field) {
-        String msg = switch (code) {
-            case 1 -> "Following field missing: " + field;
-            case 2 -> "Request is not supported: " + field;
-            default -> "Server error";
-        };
+        // only called for code==2 now
         return Response.newBuilder()
-                .setResponseType(Response.ResponseType.ERROR)
-                .setErrorType(code)
-                .setMessage(msg)
-                .setNext(1)
-                .build();
+            .setResponseType(Response.ResponseType.ERROR)
+            .setErrorType(2)
+            .setMessage("\nError: request not supported")
+            .setNext(1)
+            .build();
     }
 
-    private Response handlePlayerName(Request r){
+    private Response handlePlayerName(Request r) {
+        if (!r.hasName() || r.getName().trim().isEmpty()) {
+            currState = 1;
+            return Response.newBuilder()
+                .setResponseType(Response.ResponseType.ERROR)
+                .setErrorType(1)
+                .setMessage("\nError: required field missing or empty")
+                .setNext(1)
+                .build();
+        }
         String playerName = r.getName().trim();
-        if (playerName.isEmpty()) return errorResp(1, "name");
         LeaderboardSingleton.LB_INSTANCE.newLogin(playerName);
         name = playerName;
         currState = 2;
+    
         return Response.newBuilder()
-                .setResponseType(Response.ResponseType.GREETING)
-                .setMessage("Welcome " + playerName)
-                .setMenuoptions(menuOptions)
-                .setNext(2)
-                .build();
+            .setResponseType(Response.ResponseType.GREETING)
+            .setMessage("Hello " + playerName + " and welcome to a simple game of Sudoku.")
+            .setMenuoptions(menuOptions)
+            .setNext(2)
+            .build();
     }
 
-    private Response handleLb(){
+    private Response handleLb(Request r) {
+        List<Entry> entries = LeaderboardSingleton.LB_INSTANCE.convertProto();
+        currState = 2;
         return Response.newBuilder()
-                .setResponseType(Response.ResponseType.LEADERBOARD)
-                .addAllLeader(LeaderboardSingleton.LB_INSTANCE.convertProto())
-                .setNext(2)
-                .build();
-    }
+            .setResponseType(Response.ResponseType.LEADERBOARD)
+            .addAllLeader(entries)
+            .setMenuoptions(menuOptions)
+            .setNext(2)
+            .build();
+        }
     
     private Response handleStart(Request r){
         int difficulty = 1;
@@ -80,7 +90,7 @@ public class ClientWorker implements Runnable {
             return Response.newBuilder()
                     .setResponseType(Response.ResponseType.ERROR)
                     .setErrorType(5)
-                    .setMessage("Error: difficulty is out of range")
+                    .setMessage("\nError: difficulty is out of range")
                     .setMenuoptions(menuOptions)
                     .setNext(2)
                     .build();
@@ -92,6 +102,7 @@ public class ClientWorker implements Runnable {
         System.out.println(game.getSolBoard());
         return Response.newBuilder()
                 .setResponseType(Response.ResponseType.START)
+                .setMessage("\nStarting new game.")
                 .setBoard(game.getDisplayBoard())
                 .setMenuoptions(gameOptions)
                 .setPoints(game.getPoints())
@@ -221,8 +232,8 @@ public class ClientWorker implements Runnable {
         String opts = (currState == 3 ? gameOptions : menuOptions);
         return Response.newBuilder()
                 .setResponseType(Response.ResponseType.ERROR)
-                .setErrorType(4)
-                .setMessage("Error: request is not expected at this point")
+                .setErrorType(2)
+                .setMessage("\nError: required field missing or empty")
                 .setMenuoptions(opts)
                 .setNext(currState)
                 .build();
@@ -259,8 +270,6 @@ private void handleFlow() throws IOException {
     while (true) {
         Request request = Request.parseDelimitedFrom(in);
         if (request == null) return;
-        //System.out.println("[DEBUG] -> Request Op Type: " + request.getOperationType());
-
         Response response;
         switch (request.getOperationType()) {
 
@@ -269,7 +278,7 @@ private void handleFlow() throws IOException {
                     response = errorOutOfSequence();
                 } else {
                     response = handlePlayerName(request);
-                    currState = 2;
+                    //currState = 2;
                 }
                 break;
 
@@ -277,7 +286,7 @@ private void handleFlow() throws IOException {
                 if (currState != 2) {
                     response = errorOutOfSequence();
                 } else {
-                    response = handleLb();
+                    response = handleLb(request);
                     // stay in main menu
                 }
                 break;
@@ -321,7 +330,13 @@ private void handleFlow() throws IOException {
                 return;
 
             default:
-                response = errorResp(2, request.getOperationType().name());
+                    response = Response.newBuilder()
+                            .setResponseType(Response.ResponseType.ERROR)
+                            .setErrorType(2)
+                            .setMessage("\nError: request not supported")
+                            .setNext(currState == 1 ? 1 : currState)
+                            .build();
+                //response = errorResp(2, request.getOperationType().name());
         }
 
         sendResp(response);
