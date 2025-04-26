@@ -7,6 +7,7 @@
 
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
+    id 'java'
     id 'application'
 }
 
@@ -18,9 +19,7 @@ repositories {
 dependencies {
     // Use JUnit test framework.
     testImplementation libs.junit
-
-    // This dependency is used by the application.
-    implementation libs.guava
+    implementation 'org.json:json:20171018'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -35,38 +34,19 @@ application {
     mainClass = 'org.distrib.Client'
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs = ['app/src/main/java']
-        }
-        resources {
-            srcDirs = ['app/src/main/resources']
-        }
-    }
-    test {
-        java {
-            srcDirs = ['app/src/test/java']
-        }
-        resources {
-            srcDirs = ['app/src/test/resources']
-        }
-    }
-}
-
 task runLeader(type: JavaExec) {
     group = 'application'
-    mainClass.set('org.distrib.Leader')
+    mainClass = 'org.distrib.Leader'
     classpath = sourceSets.main.runtimeClasspath
     args = [
-        project.findProperty('clientPort') ?: '7000',
+        project.findProperty('clientPort') ?: '9000',
         project.findProperty('nodePort')   ?: '8000'
     ]
 }
 
 task runNode(type: JavaExec) {
     group = 'application'
-    mainClass.set('org.distrib.Node')
+    mainClass = 'org.distrib.Node'
     classpath = sourceSets.main.runtimeClasspath
     args = [
         project.findProperty('leaderHost') ?: 'localhost',
@@ -79,10 +59,11 @@ task runNode(type: JavaExec) {
 
 task runClient(type: JavaExec) {
     group = 'application'
-    mainClass.set('org.distrib.Client')
+    mainClass = 'org.distrib.Client'
     classpath = sourceSets.main.runtimeClasspath
     args = [
         project.findProperty('leaderHost') ?: 'localhost',
-        project.findProperty('clientPort') ?: '7000'
+        project.findProperty('clientPort') ?: '9000'
     ]
+    standardInput = System.in
 }
