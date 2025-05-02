@@ -60,7 +60,7 @@ public class Client {
     blockingStub4 = null;
     sortStub = SortGrpc.newBlockingStub(channel);
     fitnessStub = FitnessGrpc.newBlockingStub(channel);
-    quote
+    quoteStub = QuoteGrpc.newBlockingStub(channel);
     
 
   }
@@ -158,7 +158,7 @@ public class Client {
     }
   }
 
-
+  // sort
   public void sortArray(List<Integer> arr){
     SortRequest.Builder request = SortRequest.newBuilder().setAlgo(Algo.INTERN);
     arr.forEach(request::addData);
@@ -173,7 +173,7 @@ public class Client {
     System.out.println("Result Sorted: " + response.getDataList());
   }
 
-
+  // fitness service
   public void addExercise(String description, ExerciseType type) {
     Exercise exercise = Exercise.newBuilder()
         .setDescription(description)
@@ -212,6 +212,29 @@ public class Client {
         }
     } catch (Exception e) {
         System.err.println("RPC failed: " + e.getMessage());
+    }
+  }
+
+
+  // quote service
+  public void addQuote(String text) {
+    var req = AddQuoteRequest.newBuilder().setText(text).build();
+    var res = quoteStub.addQuote(req);
+    if (res.getSuccess()) System.out.println("Added id=" + res.getId());
+    else                 System.out.println("Something went wrong: " + res.getError());
+  }
+
+  public void getQuote(int id) {
+    var req = GetQuoteRequest.newBuilder().setId(id).build();
+    var res = quoteStub.getQuote(req);
+    if (res.getSuccess()) System.out.println("Quote: " + res.getText());
+    else                 System.out.println("Something went wrong: " + res.getError());
+  }
+
+  public void listQuotes() {
+    var res = quoteStub.listQuotes(Empty.newBuilder().build());
+    for (QuoteEntry e : res.getQuotesList()) {
+      System.out.printf("%d: %s%n", e.getId(), e.getText());
     }
   }
 
@@ -267,14 +290,29 @@ public class Client {
                 System.out.print("Joke: ");
                 client.setJoke(reader.readLine());
             } else if (service.equals("services.Sort/sort")) {
-                System.out.print("Numbers: ");
-                String[] parts = reader.readLine().trim().split("\\s+");
-                List<Integer> nums = new ArrayList<>();
-                for (String p : parts) {
-                    nums.add(Integer.parseInt(p));
-                }
-                client.sortArray(nums);
-            } else if (service.equals("services.Fitness/addExercise")) {
+              System.out.print("Numbers (space separated): ");
+              String line = reader.readLine().trim();
+              String[] parts = line.split("\\s+");
+              List<Integer> nums = new ArrayList<>();
+              boolean allInts = true;
+          
+              for (String p : parts) {
+                  try {
+                      nums.add(Integer.parseInt(p));
+                  } catch (NumberFormatException e) {
+                      System.out.println("Invalid number: '" + p +
+                                         "' – please enter only integers separated by spaces.");
+                      allInts = false;
+                      break;
+                  }
+              }
+          
+              if (!allInts) {
+                  continue;
+              }
+          
+              client.sortArray(nums);
+          } else if (service.equals("services.Fitness/addExercise")) {
                 System.out.print("Description: ");
                 String desc = reader.readLine();
                 System.out.print("Type: ");
@@ -298,7 +336,17 @@ public class Client {
                     continue;
                 }
                 client.getExercise(type);
+            } else if (service.equals("services.Quote/addQuote")) {
+              System.out.print("Text: ");
+              client.addQuote(reader.readLine());
             }
+            else if (service.equals("services.Quote/getQuote")) {
+              System.out.print("ID: ");
+              client.getQuote(Integer.parseInt(reader.readLine()));
+            }
+            else if (service.equals("services.Quote/listQuotes")) {
+              client.listQuotes();
+            }            
         }
     } finally {
         channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);

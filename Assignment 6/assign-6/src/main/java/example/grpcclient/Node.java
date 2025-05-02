@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+
 /**
  * Server that manages startup/shutdown of the `Node`.
  */
@@ -39,6 +40,7 @@ public class Node {
         .addService(new JokeImpl())
         .addService(new SortImpl())
         .addService(new FitnessImpl())
+        .addService(new QuoteImpl())
         .addService(new RegistryAnswerImpl(services)).build().start();
 
     for (var service : server.getServices()) {
